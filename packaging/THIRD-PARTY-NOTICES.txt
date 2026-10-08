@@ -1,0 +1,27 @@
+CodeRecall Windows desktop distribution
+
+This portable folder includes third-party runtimes and libraries. Their own
+licenses and copyright notices remain in the accompanying files.
+
+Python 3.13.9 embeddable runtime (Python Software Foundation)
+Source: https://www.python.org/downloads/release/python-3139/
+License: _internal/runtime/python/LICENSE.txt
+The launcher's separate bundled Python runtime license is retained at
+_internal/licenses/python-launcher/.
+
+w64devkit 2.10.0 (GCC / MinGW-w64 and accompanying development tools)
+Source: https://github.com/skeeto/w64devkit/releases/tag/v2.10.0
+The entire original toolchain directory is retained at:
+  _internal/runtime/toolchains/w64devkit/
+Consult that directory's README.md, COPYING.MinGW-w64-runtime.txt, source
+directory, and the individual tools' license notices for their terms.
+
+pywebview and its Python dependencies
+Source: https://github.com/r0x0r/pywebview
+Package metadata and license files are included under _internal/*.dist-info/.
+pywebview uses Microsoft Edge WebView2 installed on the user's computer.
+
+The frozen launcher was built with PyInstaller (GPL with a bootloader
+exception that permits distributing bundled applications):
+  https://pyinstaller.org/en/stable/license.html
+License: _internal/licenses/pyinstaller/COPYING.txt
