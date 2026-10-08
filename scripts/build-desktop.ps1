@@ -35,13 +35,26 @@ if (-not $SkipFrontend) {
 
 $releaseRoot = Join-Path $projectRoot "release"
 $workRoot = Join-Path $projectRoot ".local/pyinstaller"
-# --noconfirm overwrites only PyInstaller's generated CodeRecall release directory.
+# The versioned output preserves the original CodeRecall and CodeRecall-v1.0.0 folders.
+$releaseDirectory = [IO.Path]::GetFullPath((Join-Path $releaseRoot "CodeRecall-v2.0.0"))
+$safeReleaseRoot = [IO.Path]::GetFullPath($releaseRoot) + [IO.Path]::DirectorySeparatorChar
+if (-not $releaseDirectory.StartsWith($safeReleaseRoot, [StringComparison]::OrdinalIgnoreCase)) {
+    throw "The release directory must stay inside the project release folder."
+}
+# --noconfirm overwrites only the generated version 2 release directory in the spec.
 & $packagingPython -m PyInstaller --noconfirm --clean --distpath $releaseRoot --workpath $workRoot (Join-Path $projectRoot "packaging/CodeRecall.spec")
 if ($LASTEXITCODE -ne 0) { throw "Packaging CodeRecall failed." }
 
-$releaseDirectory = Join-Path $releaseRoot "CodeRecall"
 Copy-Item -LiteralPath (Join-Path $projectRoot "README.md") -Destination (Join-Path $releaseDirectory "README.md") -Force
 Copy-Item -LiteralPath (Join-Path $projectRoot "packaging/THIRD-PARTY-NOTICES.txt") -Destination (Join-Path $releaseDirectory "THIRD-PARTY-NOTICES.txt") -Force
+& $packagingPython (Join-Path $PSScriptRoot "collect-frontend-licenses.py") --output (Join-Path $releaseDirectory "THIRD-PARTY-FRONTEND.txt")
+if ($LASTEXITCODE -ne 0) { throw "Collecting frontend license notices failed." }
+Copy-Item -LiteralPath (Join-Path $projectRoot "docs") -Destination (Join-Path $releaseDirectory "docs") -Recurse -Force
+$publicDirectory = Join-Path $releaseDirectory "public"
+New-Item -ItemType Directory -Path $publicDirectory -Force | Out-Null
+foreach ($templateFile in @("knowledge-template.json", "knowledge-schema.json")) {
+    Copy-Item -LiteralPath (Join-Path $projectRoot "public/$templateFile") -Destination (Join-Path $publicDirectory $templateFile) -Force
+}
 foreach ($shortcutFile in @("create-shortcut.cmd", "create-shortcut.ps1")) {
     $shortcutSource = Join-Path $projectRoot "packaging/$shortcutFile"
     if (Test-Path -LiteralPath $shortcutSource) {
@@ -50,4 +63,4 @@ foreach ($shortcutFile in @("create-shortcut.cmd", "create-shortcut.ps1")) {
 }
 Write-Host ""
 Write-Host "Build complete: $releaseDirectory/CodeRecall.exe"
-Write-Host "Distribute the entire CodeRecall directory; the executable needs its _internal directory."
+Write-Host "Distribute the entire CodeRecall-v2.0.0 directory; the executable needs its _internal directory."

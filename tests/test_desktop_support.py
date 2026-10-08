@@ -90,7 +90,7 @@ class DesktopSupportTests(unittest.TestCase):
 
     def test_bad_version_or_envelope_is_not_imported(self):
         invalid_states = []
-        for version in (True, 2, '1'):
+        for version in (True, 3, '1'):
             value = copy.deepcopy(DEFAULT_STATE)
             value['version'] = version
             invalid_states.append(value)

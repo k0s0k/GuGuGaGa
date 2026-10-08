@@ -29,12 +29,13 @@ from desktop_support import data_directory, migrate_legacy_database
 from server.app import LocalHTTPServer, make_handler
 from server.catalog import BY_ID, detail
 from server.runner import capabilities, run
+from server.ai_import import split_document
 from server.runtime import app_dir, resource_root
 from server.store import Store
 
 APP_NAME = "CodeRecall"
-APP_ID = "CodeRecall.Desktop.1"
-VERSION = "1.0.0"
+APP_ID = "CodeRecall.Desktop.2"
+VERSION = "2.0.0"
 LOGGER = logging.getLogger("coderecall.desktop")
 
 
@@ -165,7 +166,7 @@ def native_window(service: DesktopService, directory: Path, smoke_report: Path |
     webview.settings["ALLOW_DOWNLOADS"] = True
     webview.settings["OPEN_EXTERNAL_LINKS_IN_BROWSER"] = True
     window = webview.create_window(
-        "CodeRecall · 刷题与复习", service.url,
+        "CodeRecall · 知识与复习", service.url,
         width=1320, height=900, min_size=(900, 640),
         background_color="#fbfbfa", hidden=smoke_report is not None,
     )
@@ -267,6 +268,18 @@ def self_test(report_path: Path):
                 assert current["cards"]["1"]["reviews"] == 1
                 assert service.store.read()["events"][0]["eventId"] == "desktop-self-test"
                 report["checks"].append("sqlite_persistence")
+                solution = {"brief": "# my solution", "annotated": "# my annotated solution", "explanation": "## My explanation"}
+                state = service.store.action({"type": "solution", "problemId": 1, "language": "python", "mode": "leetcode", "solution": solution})
+                assert state["solutions"]["1:python:leetcode"]["explanation"] == solution["explanation"]
+                report["checks"].append("custom_solution_persistence")
+                document = split_document({"mode": "local", "deckTitle": "Desktop test", "text": "## Active recall\nExplain a concept without looking at the answer."})
+                assert len(document["items"]) == 1
+                state = service.store.action({"type": "knowledge-import", "document": document})
+                item_id = next(iter(state["knowledge"]))
+                state = service.store.action({"type": "knowledge-rate", "itemId": item_id, "rating": "good", "eventId": "desktop-knowledge-self-test", "seconds": 1})
+                assert state["knowledgeCards"][item_id]["reviews"] == 1
+                assert service.store.validate_import(state)["knowledge"] == state["knowledge"]
+                report["checks"].append("knowledge_import_review_backup")
                 report["passed"] = True
             finally:
                 service.stop()
@@ -294,7 +307,7 @@ def main():
     if args.self_test:
         configure_logging(args.self_test.resolve().parent)
         return self_test(args.self_test)
-    directory = args.data_dir.resolve() if args.data_dir else data_directory()
+    directory = args.data_dir.resolve() if args.data_dir else data_directory("CodeRecall-v2")
     configure_logging(directory)
     mutex = InstanceMutex(directory)
     if not mutex.is_owner:
@@ -308,7 +321,7 @@ def main():
         if not (resource_root() / "dist" / "index.html").is_file():
             raise FileNotFoundError("缺少界面资源。请保留 CodeRecall.exe 与 _internal 文件夹在同一目录。")
         if not args.gui_smoke_test and not args.data_dir:
-            candidates = [app_dir() / ".local" / "coderecall.db", app_dir().parent.parent / ".local" / "coderecall.db"]
+            candidates = [app_dir() / ".local" / "coderecall-v2.db", app_dir().parent.parent / ".local" / "coderecall-v2.db", directory.parent / "CodeRecall" / "coderecall.db", app_dir() / ".local" / "coderecall.db", app_dir().parent.parent / ".local" / "coderecall.db"]
             migrated = migrate_legacy_database(directory / "coderecall.db", candidates)
             if migrated:
                 LOGGER.info("Copied existing progress from %s; original preserved", migrated)

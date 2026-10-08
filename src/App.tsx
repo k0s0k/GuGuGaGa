@@ -47,6 +47,8 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { action, bootstrap } from "./api";
+import Knowledge, { KnowledgeStudy } from "./Knowledge";
+import { knowledgeProjection } from "./knowledgeProjection";
 import type { AppState, Capabilities, Problem, View } from "./types";
 import {
   dailyPlan,
@@ -62,7 +64,8 @@ import {
 const Workspace = lazy(() => import("./Workspace"));
 
 const navigation: { id: View; label: string; icon: LucideIcon }[] = [
-  { id: "today", label: "今日练习", icon: Sun },
+  { id: "today", label: "今日学习", icon: Sun },
+  { id: "knowledge", label: "我的知识库", icon: BookOpen },
   { id: "library", label: "Hot 100 题库", icon: Code2 },
   { id: "review", label: "复习计划", icon: RotateCcw },
   { id: "calendar", label: "学习日历", icon: CalendarDays },
@@ -171,6 +174,7 @@ export default function App() {
     [categories, setCategories] = useState<string[]>([]);
   const [view, setView] = useState<View>("today"),
     [selected, setSelected] = useState<number | null>(null),
+    [selectedKnowledge, setSelectedKnowledge] = useState<string | null>(null),
     [error, setError] = useState(""),
     [toast, setToast] = useState(""),
     [sideOpen, setSideOpen] = useState(false),
@@ -209,6 +213,15 @@ export default function App() {
   }, [state?.settings.theme]);
   useEffect(() => {
     const parse = () => {
+      const knowledgeMatch = location.hash.match(
+        /^#knowledge\/([A-Za-z0-9_.:-]+)$/,
+      );
+      if (knowledgeMatch) {
+        setSelected(null);
+        setSelectedKnowledge(knowledgeMatch[1]);
+        return;
+      }
+      setSelectedKnowledge(null);
       const match = location.hash.match(/^#problem\/(\d+)/);
       if (match) setSelected(Number(match[1]));
       else {
@@ -224,22 +237,31 @@ export default function App() {
   }, []);
   const navigate = useCallback((next: View) => {
     setSelected(null);
+    setSelectedKnowledge(null);
     setView(next);
     location.hash = next;
     setSideOpen(false);
   }, []);
   const openProblem = useCallback((id: number) => {
     setSelected(id);
+    setSelectedKnowledge(null);
     location.hash = `problem/${id}`;
+    setSideOpen(false);
+  }, []);
+  const openKnowledge = useCallback((id: string) => {
+    setSelected(null);
+    setSelectedKnowledge(id);
+    location.hash = `knowledge/${id}`;
     setSideOpen(false);
   }, []);
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key === "k") {
         event.preventDefault();
-        navigate("library");
+        if (document.querySelector('[role="dialog"][aria-modal="true"]')) return;
+        navigate("knowledge");
         setTimeout(
-          () => document.getElementById("problem-search")?.focus(),
+          () => document.getElementById("knowledge-search")?.focus(),
           80,
         );
       }
@@ -265,7 +287,12 @@ export default function App() {
     [notify],
   );
   const favorite = (id: number) => {
-    void mutate({ type: "favorite", problemId: id }).catch(() => {});
+    const itemId = projection.reverse.get(id);
+    void mutate(
+      itemId
+        ? { type: "knowledge-favorite", itemId }
+        : { type: "favorite", problemId: id },
+    ).catch(() => {});
   };
   if (error)
     return (
@@ -293,13 +320,23 @@ export default function App() {
         <p>正在打开你的学习工作台…</p>
       </div>
     );
-  const due = problems.filter((p) => isDue(state.cards[p.id])),
+  const projection = knowledgeProjection(problems, state);
+  const openStudy = (id: number) => {
+    const itemId = projection.reverse.get(id);
+    if (itemId) openKnowledge(itemId);
+    else openProblem(id);
+  };
+  const due = projection.planned.filter((p) =>
+      isDue(projection.state.cards[p.id]),
+    ),
     count = Object.keys(state.cards).length;
-  const title = selected
-    ? "练习工作区"
-    : view === "settings"
-      ? "偏好设置"
-      : navigation.find((n) => n.id === view)?.label;
+  const title = selectedKnowledge
+    ? "知识复习"
+    : selected
+      ? "练习工作区"
+      : view === "settings"
+        ? "偏好设置"
+        : navigation.find((n) => n.id === view)?.label;
   return (
     <div className="app-shell">
       {sideOpen && (
@@ -311,22 +348,22 @@ export default function App() {
             <Code2 size={19} />
           </span>
           <span>
-            CodeRecall<span className="brand-sub">每天一点，真正掌握</span>
+            CodeRecall<span className="brand-sub">任何知识，都值得记住</span>
           </span>
           <ChevronDown size={14} className="muted" />
         </button>
         <button
           className="quick-search"
           onClick={() => {
-            navigate("library");
+            navigate("knowledge");
             setTimeout(
-              () => document.getElementById("problem-search")?.focus(),
+              () => document.getElementById("knowledge-search")?.focus(),
               80,
             );
           }}
         >
           <Search size={15} />
-          <span>搜索题目</span>
+          <span>搜索知识</span>
           <kbd>⌃ K</kbd>
         </button>
         <div className="nav-label">工作空间</div>
@@ -335,7 +372,8 @@ export default function App() {
             <button
               key={id}
               className={
-                "nav-item " + (view === id && !selected ? "active" : "")
+                "nav-item " +
+                (view === id && !selected && !selectedKnowledge ? "active" : "")
               }
               onClick={() => navigate(id)}
             >
@@ -368,9 +406,9 @@ export default function App() {
           <div className="little-quote">
             <Sprout size={17} />
             <p>
-              重要的不是做过多少题，
+              把看过的知识，
               <br />
-              而是下次还能做出来。
+              变成自己的能力。
             </p>
           </div>
           <button
@@ -452,7 +490,17 @@ export default function App() {
             </button>
           </div>
         </header>
-        {selected ? (
+        {selectedKnowledge ? (
+          <KnowledgeStudy
+            key={selectedKnowledge}
+            id={selectedKnowledge}
+            state={state}
+            mutate={mutate}
+            notify={notify}
+            onBack={() => navigate("knowledge")}
+            onOpen={openKnowledge}
+          />
+        ) : selected ? (
           <Suspense
             fallback={
               <div className="workspace-loading">
@@ -477,32 +525,53 @@ export default function App() {
           <main className="page-content">
             {view === "today" && (
               <Today
-                problems={problems}
-                state={state}
-                onOpen={openProblem}
+                problems={projection.planned}
+                state={projection.state}
+                onOpen={openStudy}
                 navigate={navigate}
+              />
+            )}
+            {view === "knowledge" && (
+              <Knowledge
+                state={state}
+                mutate={mutate}
+                notify={notify}
+                onOpen={openKnowledge}
               />
             )}
             {(view === "library" || view === "favorites") && (
               <Library
-                problems={problems}
-                state={state}
-                onOpen={openProblem}
+                problems={view === "favorites" ? projection.active : problems}
+                state={view === "favorites" ? projection.state : state}
+                onOpen={openStudy}
                 onFavorite={favorite}
-                categories={categories}
+                categories={
+                  view === "favorites"
+                    ? [
+                        ...new Set([
+                          ...categories,
+                          ...projection.active.map((p) => p.category),
+                        ]),
+                      ]
+                    : categories
+                }
                 category={category}
                 setCategory={setCategory}
                 favoritesOnly={view === "favorites"}
               />
             )}
             {view === "review" && (
-              <Review problems={problems} state={state} onOpen={openProblem} />
+              <Review
+                problems={projection.planned}
+                state={projection.state}
+                onOpen={openStudy}
+              />
             )}
             {view === "calendar" && (
               <Calendar
-                problems={problems}
-                state={state}
-                onOpen={openProblem}
+                problems={projection.all}
+                state={projection.state}
+                onOpen={openStudy}
               />
             )}
             {view === "path" && (
@@ -526,14 +595,14 @@ export default function App() {
             )}
           </main>
         )}
-        {!selected && (
+        {!selected && !selectedKnowledge && (
           <footer className="page-footer">
             <span>
               <span className="mini-brand">⌘</span> CodeRecall{" "}
               <span className="footer-dot">·</span> 把练习变成长期记忆
             </span>
             <span>
-              专注当下这一题 <Sprout size={13} />
+              专注当下这一小步 <Sprout size={13} />
             </span>
           </footer>
         )}
@@ -563,24 +632,25 @@ export default function App() {
               <X size={19} />
             </button>
             <span className="eyebrow">WELCOME TO CODERECALL</span>
-            <h2>让每一道题，成为你的能力。</h2>
+            <h2>让每一份知识，成为你的能力。</h2>
             <div className="guide-step">
               <b>01</b>
               <div>
                 <h3>从今日计划开始</h3>
                 <p>
-                  优先复习到期题目，再学习 Hot100
-                  新题。你可以在设置中调整每天的节奏。
+                  知识库与 Hot100
+                  共享每日目标和日历。先复习到期内容，再学习新知识，在设置中调整每天的节奏。
                 </p>
               </div>
             </div>
             <div className="guide-step">
               <b>02</b>
               <div>
-                <h3>独立实现，再看解析</h3>
+                <h3>加入自己的知识</h3>
                 <p>
-                  切换 Python / C++ 和 LeetCode / ACM
-                  模式。运行本地样例，按需查看简洁版、注释版或完整解析。
+                  在「我的知识库」创建问答、填空或实践卡；导入 Markdown
+                  笔记，按标题或通过 AI 拆分，预览编辑后导入。Hot100
+                  仍支持双语言答题与个人题解。
                 </p>
               </div>
             </div>
@@ -596,7 +666,7 @@ export default function App() {
             </div>
             <div className="info-note">
               <Command size={16} />
-              Ctrl / ⌘ + K 搜索题目，Ctrl / ⌘ + Enter 运行代码。
+              Ctrl / ⌘ + K 搜索知识，Ctrl / ⌘ + Enter 运行代码。
             </div>
             <button className="primary full" onClick={() => setHelp(false)}>
               开始积累 <ArrowRight size={16} />
@@ -653,12 +723,14 @@ function ProblemRow({
       <div className="row-main">
         <strong>
           {problem.title}
-          <span className="problem-id">#{problem.id}</span>
+          {!problem.knowledgeId && (
+            <span className="problem-id">#{problem.id}</span>
+          )}
         </strong>
         <span>
           {problem.category}
           <span className="text-dot">·</span>
-          {card ? dueLabel(card) : "新题 · 建立第一份记忆"}
+          {card ? dueLabel(card) : "新知 · 建立第一份记忆"}
         </span>
       </div>
       <Difficulty value={problem.difficulty} />
@@ -694,26 +766,26 @@ function Today({
         (tab === "待复习" ? !!state.cards[p.id] : !state.cards[p.id]),
     );
   const checked = state.checkins.includes(today),
-    learned = Object.keys(state.cards).length,
-    mastered = Object.values(state.cards).filter(
-      (c) => c.stability >= 21,
+    learned = problems.filter((p) => state.cards[p.id]).length,
+    mastered = problems.filter(
+      (p) => state.cards[p.id]?.stability >= 21,
     ).length;
   const weekday = now.toLocaleDateString("zh-CN", { weekday: "long" });
   const stats = [
     {
       label: "今日完成",
       value: done,
-      suffix: `/ ${state.settings.dailyGoal} 题`,
+      suffix: `/ ${state.settings.dailyGoal} 项`,
       icon: Target,
       hint: checked
         ? "今日已打卡，继续保持"
-        : `还差 ${Math.max(0, state.settings.dailyGoal - done)} 题完成目标`,
+        : `还差 ${Math.max(0, state.settings.dailyGoal - done)} 项完成目标`,
       className: "green",
     },
     {
       label: "待复习",
       value: due.length,
-      suffix: "题",
+      suffix: "项",
       icon: RotateCcw,
       hint: due.length ? "让记忆在遗忘前再次加深" : "记忆状态良好，继续积累",
       className: "",
@@ -721,9 +793,9 @@ function Today({
     {
       label: "累计学习",
       value: learned,
-      suffix: "/ 100 题",
+      suffix: `/ ${problems.length} 项`,
       icon: BookOpen,
-      hint: `${mastered} 题已进入长期记忆阶段`,
+      hint: `${mastered} 项已进入长期记忆阶段`,
       className: "",
     },
     {
@@ -739,18 +811,32 @@ function Today({
     <>
       <PageHeading
         eyebrow={`${now.getMonth() + 1} 月 ${now.getDate()} 日，${weekday}`}
-        title="让每一题，都留下来。"
-        description="不急于做完所有题，先把今天的几题真正掌握。"
+        title="让学过的，真正留下来。"
+        description="从一段代码到一门技能，先回忆，再巩固。"
       >
         <button
           className="primary start-button"
-          onClick={() => (plan[0] ? onOpen(plan[0].id) : navigate("library"))}
+          onClick={() => (plan[0] ? onOpen(plan[0].id) : navigate("knowledge"))}
         >
           <Play size={15} fill="currentColor" />
-          {plan.length ? "开始今日练习" : "探索更多题目"}
+          {plan.length ? "开始今日学习" : "添加新的知识"}
           <span className="button-shortcut">↗</span>
         </button>
       </PageHeading>
+      <div className="knowledge-banner">
+        <BookOpen size={25} />
+        <div>
+          <h3>不止刷题，建立自己的知识库</h3>
+          <p>
+            导入学习笔记，将 C++、英语、Blender 或 UE5
+            的知识拆成可回忆的小卡片。
+          </p>
+        </div>
+        <button className="secondary" onClick={() => navigate("knowledge")}>
+          管理知识库
+          <ArrowRight size={15} />
+        </button>
+      </div>
       <div className="stat-grid">
         {stats.map((s) => (
           <section className="stat-card" key={s.label}>
@@ -789,7 +875,7 @@ function Today({
               </button>
             </div>
             <div className="tabs-bar">
-              {["全部任务", "新题", "待复习"].map((t) => (
+              {["全部任务", "新知", "待复习"].map((t) => (
                 <button
                   className={tab === t ? "selected" : ""}
                   key={t}
@@ -799,7 +885,7 @@ function Today({
                   {t === "待复习" && <span>{due.length}</span>}
                 </button>
               ))}
-              <span className="tabs-right">Hot 100 优先</span>
+              <span className="tabs-right">知识库 + Hot 100</span>
             </div>
             <div className="task-list">
               {filtered.slice(0, 8).map((p, i) => (
@@ -828,56 +914,76 @@ function Today({
               </span>
               <button
                 className="text-button"
-                onClick={() => navigate("library")}
+                onClick={() => navigate("knowledge")}
               >
-                浏览全部题目 <ArrowRight size={14} />
+                浏览我的知识 <ArrowRight size={14} />
               </button>
             </div>
           </section>
-          <section className="panel roadmap-preview">
-            <div className="panel-heading">
-              <div>
-                <h2>你的 Hot 100 之旅</h2>
-                <p>沿着知识脉络，搭建完整的算法体系。</p>
+          {state.settings.includeHot100 !== false && (
+            <section className="panel roadmap-preview">
+              <div className="panel-heading">
+                <div>
+                  <h2>你的 Hot 100 之旅</h2>
+                  <p>沿着知识脉络，搭建完整的算法体系。</p>
+                </div>
+                <button
+                  className="icon-btn"
+                  title="查看知识路线"
+                  onClick={() => navigate("path")}
+                >
+                  <ArrowRight size={19} />
+                </button>
               </div>
-              <button
-                className="icon-btn"
-                title="查看知识路线"
-                onClick={() => navigate("path")}
-              >
-                <ArrowRight size={19} />
-              </button>
-            </div>
-            <div className="journey-progress">
-              <div className="journey-track">
-                {Array.from({ length: 50 }, (_, i) => (
-                  <span key={i} className={i < learned / 2 ? "filled" : ""} />
+              <div className="journey-progress">
+                <div className="journey-track">
+                  {Array.from({ length: 50 }, (_, i) => (
+                    <span
+                      key={i}
+                      className={
+                        i <
+                        problems.filter(
+                          (p) => !p.knowledgeId && state.cards[p.id],
+                        ).length /
+                          2
+                          ? "filled"
+                          : ""
+                      }
+                    />
+                  ))}
+                </div>
+                <span>
+                  <b>
+                    {
+                      problems.filter(
+                        (p) => !p.knowledgeId && state.cards[p.id],
+                      ).length
+                    }
+                  </b>{" "}
+                  / 100
+                </span>
+              </div>
+              <div className="journey-topics">
+                {["哈希表", "双指针", "滑动窗口", "链表"].map((cat, i) => (
+                  <button key={cat} onClick={() => navigate("path")}>
+                    <span className="topic-symbol">{categoryIcons[cat]}</span>
+                    <span>
+                      {cat}
+                      <small>
+                        {
+                          problems.filter(
+                            (p) => p.category === cat && state.cards[p.id],
+                          ).length
+                        }{" "}
+                        / {problems.filter((p) => p.category === cat).length} 题
+                      </small>
+                    </span>
+                    {i === 0 && <span className="small-tag">从这里开始</span>}
+                  </button>
                 ))}
               </div>
-              <span>
-                <b>{learned}</b> / 100
-              </span>
-            </div>
-            <div className="journey-topics">
-              {["哈希表", "双指针", "滑动窗口", "链表"].map((cat, i) => (
-                <button key={cat} onClick={() => navigate("path")}>
-                  <span className="topic-symbol">{categoryIcons[cat]}</span>
-                  <span>
-                    {cat}
-                    <small>
-                      {
-                        problems.filter(
-                          (p) => p.category === cat && state.cards[p.id],
-                        ).length
-                      }{" "}
-                      / {problems.filter((p) => p.category === cat).length} 题
-                    </small>
-                  </span>
-                  {i === 0 && <span className="small-tag">从这里开始</span>}
-                </button>
-              ))}
-            </div>
-          </section>
+            </section>
+          )}
         </div>
         <aside className="dashboard-secondary">
           <section className="panel memory-panel">
@@ -1198,14 +1304,14 @@ function Review({
           <span>现在需要复习</span>
           <strong>
             {due.length}
-            <small>题</small>
+            <small>项</small>
           </strong>
         </div>
         <div>
           <span>未来七天安排</span>
           <strong>
             {upcoming.length}
-            <small>题</small>
+            <small>项</small>
           </strong>
         </div>
         <div>
@@ -1261,10 +1367,10 @@ function Review({
             <Empty
               icon={CheckCheck}
               title={
-                tab === "到期复习" ? "目前没有到期题目" : "记忆正在慢慢建立"
+                tab === "到期复习" ? "目前没有到期内容" : "记忆正在慢慢建立"
               }
             >
-              完成新题并提交记忆反馈后，复习任务会出现在这里。
+              完成新项并提交记忆反馈后，复习任务会出现在这里。
             </Empty>
           )}
         </section>
@@ -1411,7 +1517,7 @@ function Calendar({
               return (
                 <button
                   key={key}
-                  aria-label={`${key}，学习 ${count} 题`}
+                  aria-label={`${key}，学习 ${count} 项`}
                   onClick={() => setSelected(key)}
                   className={`calendar-cell ${outside ? "outside" : ""} ${selected === key ? "selected" : ""} ${key === dayKey() ? "today" : ""} ${count ? "has-activity" : ""}`}
                 >
@@ -1421,7 +1527,7 @@ function Calendar({
                   </span>
                   {count > 0 ? (
                     <span className="calendar-activity">
-                      {count} 题<small>{check ? "已打卡" : "学习中"}</small>
+                      {count} 项<small>{check ? "已打卡" : "学习中"}</small>
                     </span>
                   ) : key === dayKey() ? (
                     <span className="calendar-today-label">今天</span>
@@ -1436,7 +1542,7 @@ function Calendar({
               绿色表示有学习记录
             </span>
             <span>
-              本月学习 {new Set(monthEvents.map((e) => e.problemId)).size} 题 ·
+              本月学习 {new Set(monthEvents.map((e) => e.problemId)).size} 项 ·
               打卡{" "}
               {state.checkins.filter((d) => d.startsWith(monthPrefix)).length}{" "}
               天
@@ -1462,7 +1568,7 @@ function Calendar({
               <div className="day-stats">
                 <div>
                   <b>{new Set(selectedEvents.map((e) => e.problemId)).size}</b>
-                  <span>完成题目</span>
+                  <span>完成内容</span>
                 </div>
                 <div>
                   <b>
@@ -1601,9 +1707,11 @@ function Settings({
   const readBackup = async (file?: File) => {
     if (!file) return;
     try {
-      if (file.size > 8 * 1024 * 1024) throw new Error("备份文件不能超过 8 MB");
-      const data = JSON.parse(await file.text());
-      if (data.version !== 1) throw new Error("不支持的备份版本");
+      if (file.size > 64 * 1024 * 1024)
+        throw new Error("备份文件不能超过 64 MB");
+      const data = JSON.parse((await file.text()).replace(/^\uFEFF/, ""));
+      if (!data || ![1, 2].includes(data.version))
+        throw new Error("不支持的备份版本；知识库文件请到「我的知识库」导入");
       setPendingImport(data);
     } catch (e) {
       notify((e as Error).message);
@@ -1626,7 +1734,7 @@ function Settings({
           <div className="setting-row">
             <div>
               <strong>每日打卡目标</strong>
-              <p>当天完成不同题目的数量达到目标，自动打卡。</p>
+              <p>题目与知识点合计达到每日目标，自动打卡。</p>
             </div>
             <select
               aria-label="每日打卡目标"
@@ -1635,27 +1743,39 @@ function Settings({
             >
               {Array.from({ length: 30 }, (_, i) => (
                 <option value={i + 1} key={i}>
-                  {i + 1} 题 / 天
+                  {i + 1} 项 / 天
                 </option>
               ))}
             </select>
           </div>
           <div className="setting-row">
             <div>
-              <strong>每日新题推荐</strong>
-              <p>优先完成复习，再学习新题。</p>
+              <strong>每日新知推荐</strong>
+              <p>先复习，再学习新知识。所有知识库共享新学额度。</p>
             </div>
             <select
-              aria-label="每日新题推荐"
+              aria-label="每日新知推荐"
               value={state.settings.newPerDay}
               onChange={(e) => setting({ newPerDay: Number(e.target.value) })}
             >
               {Array.from({ length: 10 }, (_, i) => (
                 <option key={i} value={i + 1}>
-                  {i + 1} 题 / 天
+                  {i + 1} 项 / 天
                 </option>
               ))}
             </select>
+          </div>
+          <div className="setting-row">
+            <div>
+              <strong>每日计划包含 Hot100</strong>
+              <p>只复习自己的知识库时可关闭。算法题库和已有记录会保留。</p>
+            </div>
+            <input
+              aria-label="每日计划包含 Hot100"
+              type="checkbox"
+              checked={state.settings.includeHot100 !== false}
+              onChange={(e) => setting({ includeHot100: e.target.checked })}
+            />
           </div>
           <div className="setting-row">
             <div>
@@ -1720,7 +1840,7 @@ function Settings({
                 onClick={() => {
                   download(
                     `CodeRecall-${dayKey()}.json`,
-                    JSON.stringify(state, null, 2),
+                    JSON.stringify(state),
                   );
                   notify("备份已导出");
                 }}
@@ -1817,8 +1937,7 @@ function Settings({
           <section className="modal" role="dialog" aria-modal="true">
             <h2>导入这份学习备份？</h2>
             <p>
-              导入将替换当前进度、设置、笔记与草稿。应用会先把现有数据自动备份到
-              .local 目录。
+              导入将替换当前知识库、个人题解、进度、设置、笔记与草稿。应用会先把现有数据自动备份到数据库所在的数据目录。
             </p>
             <div className="button-group">
               <button
@@ -1839,7 +1958,9 @@ function Settings({
                         .filter(
                           (key) =>
                             key.startsWith("coderecall-pending-") ||
-                            key.startsWith("coderecall-note-"),
+                            key.startsWith("coderecall-note-") ||
+                            key.startsWith("coderecall-knowledge-note-") ||
+                            key.startsWith("coderecall-solution-"),
                         )
                         .forEach((key) => localStorage.removeItem(key));
                       notify("学习备份已恢复");

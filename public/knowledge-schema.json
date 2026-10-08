@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/k0s0k/CodeRecall/blob/main/public/knowledge-schema.json",
+  "title": "CodeRecall knowledge import, version 1",
+  "description": "Portable study content. This is not a full application progress backup. The application also validates total UTF-8 size and unique item IDs.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "version", "deck", "items"],
+  "properties": {
+    "format": { "const": "coderecall.knowledge" },
+    "version": { "type": "integer", "const": 1 },
+    "deck": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "title": { "$ref": "#/$defs/nonblankText", "maxLength": 200 },
+        "description": { "$ref": "#/$defs/text", "maxLength": 5000, "default": "" }
+      }
+    },
+    "items": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 1000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["title", "kind", "prompt", "answer"],
+        "properties": {
+          "id": { "$ref": "#/$defs/identifier" },
+          "title": { "$ref": "#/$defs/nonblankText", "maxLength": 300 },
+          "kind": { "enum": ["qa", "cloze", "procedure"] },
+          "prompt": { "$ref": "#/$defs/nonblankText", "maxLength": 100000 },
+          "answer": { "$ref": "#/$defs/nonblankText", "maxLength": 100000 },
+          "tags": {
+            "type": "array",
+            "maxItems": 30,
+            "default": [],
+            "items": { "$ref": "#/$defs/nonblankText", "maxLength": 60 }
+          },
+          "source": { "$ref": "#/$defs/text", "maxLength": 2000, "default": "" }
+        },
+        "allOf": [{
+          "if": { "properties": { "kind": { "const": "cloze" } } },
+          "then": { "properties": { "prompt": { "pattern": "\\{\\{c[1-9]\\d*::[^{}\\n]+\\}\\}" } } }
+        }]
+      }
+    }
+  },
+  "$defs": {
+    "text": { "type": "string", "pattern": "^[^\\u0000]*$" },
+    "nonblankText": {
+      "allOf": [{ "$ref": "#/$defs/text" }, { "minLength": 1, "pattern": "\\S" }]
+    },
+    "identifier": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,99}(?![\\s\\S])"
+    }
+  }
+}

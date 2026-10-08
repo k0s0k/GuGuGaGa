@@ -1,0 +1,163 @@
+{
+  "problem": {
+    "id": 1,
+    "title": "两数之和",
+    "slug": "two-sum",
+    "difficulty": "简单",
+    "category": "哈希表",
+    "summary": "给定整数数组 nums 和目标值 target，返回两个不同下标，使对应数值之和等于 target。题目保证恰有一组答案，下标顺序不限。",
+    "constraints": [
+      "2 ≤ nums.length ≤ 10⁴",
+      "数值与 target 均在 [-10⁹, 10⁹] 内",
+      "不能重复使用同一个元素"
+    ],
+    "examples": [
+      {
+        "input": [[2, 7, 11, 15], 9],
+        "output": [0, 1],
+        "explanation": "2 + 7 = 9。",
+        "stdin": "4\n2 7 11 15\n9\n"
+      },
+      {
+        "input": [[3, 3], 6],
+        "output": [0, 1],
+        "explanation": "值可以相同，但必须来自不同下标。",
+        "stdin": "2\n3 3\n6\n"
+      }
+    ],
+    "method": "twoSum",
+    "params": [
+      {
+        "name": "nums",
+        "type": "int[]"
+      },
+      {
+        "name": "target",
+        "type": "int"
+      }
+    ],
+    "returns": "int[]",
+    "approach": "用哈希表保存已出现数值的下标，一次遍历中寻找当前数的补数。",
+    "steps": [
+      "建立数值到下标的映射。",
+      "对当前数先查找 target - 当前数。",
+      "找到则返回两个下标，否则记录当前数。"
+    ],
+    "correctness": "遍历到答案中靠后的元素时，靠前元素已经存入哈希表，因此一定会被找到；先查询后写入保证两个下标不同。",
+    "pitfalls": [
+      "不能先存入再查询，否则可能让一个元素和自己配对。",
+      "哈希表存下标，不只是是否出现。"
+    ],
+    "time": "平均 O(n)",
+    "space": "O(n)",
+    "compare": "unordered",
+    "solutions": {
+      "python": {
+        "leetcode": {
+          "brief": "from typing import List\n\nclass Solution:\n    def twoSum(self, nums: List[int], target: int) -> List[int]:\n        seen = {}\n        for index, value in enumerate(nums):\n            complement = target - value\n\n            if complement in seen:\n                return [seen[complement], index]\n            seen[value] = index\n        return []\n",
+          "annotated": "from typing import List\n\nclass Solution:\n    def twoSum(self, nums: List[int], target: int) -> List[int]:\n        seen = {}\n        for index, value in enumerate(nums):\n            complement = target - value\n            # 先查询再记录，保证不会重复使用当前元素。\n            if complement in seen:\n                return [seen[complement], index]\n            seen[value] = index\n        return []\n"
+        },
+        "acm": {
+          "brief": "import json\n\nfrom typing import List\n\nclass Solution:\n    def twoSum(self, nums: List[int], target: int) -> List[int]:\n        seen = {}\n        for index, value in enumerate(nums):\n            complement = target - value\n\n            if complement in seen:\n                return [seen[complement], index]\n            seen[value] = index\n        return []\n\ndef main():\n    nums_count = int(input())\n    nums = list(map(int, input().split()))\n    if len(nums) != nums_count:\n        raise ValueError('元素数量与输入不一致')\n    target = int(input())\n    result = Solution().twoSum(nums, target)\n    print(json.dumps(result, ensure_ascii=False))\n\nif __name__ == '__main__':\n    main()\n",
+          "annotated": "import json\n\nfrom typing import List\n\nclass Solution:\n    def twoSum(self, nums: List[int], target: int) -> List[int]:\n        seen = {}\n        for index, value in enumerate(nums):\n            complement = target - value\n            # 先查询再记录，保证不会重复使用当前元素。\n            if complement in seen:\n                return [seen[complement], index]\n            seen[value] = index\n        return []\n\ndef main():\n    nums_count = int(input())\n    nums = list(map(int, input().split()))\n    if len(nums) != nums_count:\n        raise ValueError('元素数量与输入不一致')\n    target = int(input())\n    result = Solution().twoSum(nums, target)\n    print(json.dumps(result, ensure_ascii=False))\n\nif __name__ == '__main__':\n    main()\n"
+        }
+      },
+      "cpp": {
+        "leetcode": {
+          "brief": "class Solution {\npublic:\n    vector<int> twoSum(vector<int>& nums, int target) {\n        unordered_map<int, int> seen;\n        for (int i = 0; i < (int)nums.size(); ++i) {\n            int need = target - nums[i];\n\n            if (seen.count(need)) return {seen[need], i};\n            seen[nums[i]] = i;\n        }\n        return {};\n    }\n};\n",
+          "annotated": "class Solution {\npublic:\n    vector<int> twoSum(vector<int>& nums, int target) {\n        unordered_map<int, int> seen;\n        for (int i = 0; i < (int)nums.size(); ++i) {\n            int need = target - nums[i];\n            // 仅匹配已经经过的下标。\n            if (seen.count(need)) return {seen[need], i};\n            seen[nums[i]] = i;\n        }\n        return {};\n    }\n};\n"
+        },
+        "acm": {
+          "brief": "#include <iostream>\n#include <unordered_map>\n#include <vector>\nusing namespace std;\n\ntemplate<class T> void readValue(T& value) { cin >> value; }\n\ntemplate<class T> void readValue(vector<T>& values) {\n    int count; cin >> count; values.resize(count);\n    for (auto& value : values) readValue(value);\n}\n\ntemplate<class T> void printValue(const T& value) { cout << value; }\n\ntemplate<class T> void printValue(const vector<T>& values) {\n    cout << '[';\n    for (size_t i = 0; i < values.size(); ++i) { if (i) cout << ','; printValue(values[i]); }\n    cout << ']';\n}\n\nclass Solution {\npublic:\n    vector<int> twoSum(vector<int>& nums, int target) {\n        unordered_map<int, int> seen;\n        for (int i = 0; i < (int)nums.size(); ++i) {\n            int need = target - nums[i];\n\n            if (seen.count(need)) return {seen[need], i};\n            seen[nums[i]] = i;\n        }\n        return {};\n    }\n};\n\nint main() {\n    ios::sync_with_stdio(false);\n    cin.tie(nullptr);\n    vector<int> nums; readValue(nums);\n    int target; readValue(target);\n    auto result = Solution().twoSum(nums, target);\n    printValue(result);\n    cout << \"\\n\";\n    return 0;\n}\n",
+          "annotated": "#include <iostream>\n#include <unordered_map>\n#include <vector>\nusing namespace std;\n\ntemplate<class T> void readValue(T& value) { cin >> value; }\n\ntemplate<class T> void readValue(vector<T>& values) {\n    int count; cin >> count; values.resize(count);\n    for (auto& value : values) readValue(value);\n}\n\ntemplate<class T> void printValue(const T& value) { cout << value; }\n\ntemplate<class T> void printValue(const vector<T>& values) {\n    cout << '[';\n    for (size_t i = 0; i < values.size(); ++i) { if (i) cout << ','; printValue(values[i]); }\n    cout << ']';\n}\n\nclass Solution {\npublic:\n    vector<int> twoSum(vector<int>& nums, int target) {\n        unordered_map<int, int> seen;\n        for (int i = 0; i < (int)nums.size(); ++i) {\n            int need = target - nums[i];\n            // 仅匹配已经经过的下标。\n            if (seen.count(need)) return {seen[need], i};\n            seen[nums[i]] = i;\n        }\n        return {};\n    }\n};\n\n\nint main() {\n    ios::sync_with_stdio(false);\n    cin.tie(nullptr);\n    vector<int> nums; readValue(nums);\n    int target; readValue(target);\n    auto result = Solution().twoSum(nums, target);\n    printValue(result);\n    cout << \"\\n\";\n    return 0;\n}\n"
+        }
+      }
+    },
+    "templates": {
+      "python": {
+        "leetcode": "from typing import *\n\nclass Solution:\n\n    def twoSum(self, nums: List[int], target: int) -> List[int]:\n        raise NotImplementedError('请写下你的思路与实现')\n",
+        "acm": "import json\nfrom typing import List\n\nfrom typing import *\n\nclass Solution:\n\n    def twoSum(self, nums: List[int], target: int) -> List[int]:\n        raise NotImplementedError('请写下你的思路与实现')\n\ndef main():\n    nums_count = int(input())\n    nums = list(map(int, input().split()))\n    if len(nums) != nums_count:\n        raise ValueError('元素数量与输入不一致')\n    target = int(input())\n    result = Solution().twoSum(nums, target)\n    print(json.dumps(result, ensure_ascii=False))\n\nif __name__ == '__main__':\n    main()\n"
+      },
+      "cpp": {
+        "leetcode": "class Solution {\npublic:\n    vector<int> twoSum(vector<int>& nums, int target) {\n        // 从这里开始实现\n        throw runtime_error(\"请完成实现\");\n    }\n};\n",
+        "acm": "#include <iostream>\n#include <stdexcept>\n#include <vector>\nusing namespace std;\n\ntemplate<class T> void readValue(T& value) { cin >> value; }\n\ntemplate<class T> void readValue(vector<T>& values) {\n    int count; cin >> count; values.resize(count);\n    for (auto& value : values) readValue(value);\n}\n\ntemplate<class T> void printValue(const T& value) { cout << value; }\n\ntemplate<class T> void printValue(const vector<T>& values) {\n    cout << '[';\n    for (size_t i = 0; i < values.size(); ++i) { if (i) cout << ','; printValue(values[i]); }\n    cout << ']';\n}\n\nclass Solution {\npublic:\n    vector<int> twoSum(vector<int>& nums, int target) {\n        // 从这里开始实现\n        throw runtime_error(\"请完成实现\");\n    }\n};\n\n\nint main() {\n    ios::sync_with_stdio(false);\n    cin.tie(nullptr);\n    vector<int> nums; readValue(nums);\n    int target; readValue(target);\n    auto result = Solution().twoSum(nums, target);\n    printValue(result);\n    cout << \"\\n\";\n    return 0;\n}\n"
+      }
+    },
+    "inputGuide": [
+      "nums：先输入长度，再输入一行空格分隔的整数（空数组仍保留空行）。",
+      "target：一行整数。",
+      "输出一行 JSON 值；链表输出节点数组，二叉树输出层序数组。"
+    ]
+  },
+  "bootstrap": {
+    "problems": [
+      {
+        "id": 1,
+        "title": "两数之和",
+        "slug": "two-sum",
+        "difficulty": "简单",
+        "category": "哈希表",
+        "approach": "用哈希表保存已出现数值的下标，一次遍历中寻找当前数的补数。",
+        "time": "平均 O(n)",
+        "space": "O(n)",
+        "order": 1
+      }
+    ],
+    "categories": [
+      "数组",
+      "链表",
+      "哈希表",
+      "字符串",
+      "双指针",
+      "滑动窗口",
+      "前缀和",
+      "矩阵",
+      "栈与队列",
+      "二叉树",
+      "回溯",
+      "贪心",
+      "动态规划",
+      "二分查找",
+      "单调栈",
+      "单调队列",
+      "堆",
+      "图论",
+      "技巧"
+    ],
+    "state": {
+      "version": 2,
+      "settings": {
+        "dailyGoal": 3,
+        "newPerDay": 3,
+        "language": "python",
+        "mode": "leetcode",
+        "retention": 0.9,
+        "theme": "light"
+      },
+      "cards": {},
+      "notes": {},
+      "favorites": [],
+      "drafts": {},
+      "events": [],
+      "checkins": [],
+      "solutions": {},
+      "decks": {},
+      "knowledge": {},
+      "knowledgeCards": {},
+      "knowledgeNotes": {},
+      "knowledgeFavorites": [],
+      "knowledgeEvents": []
+    },
+    "capabilities": {
+      "python": {
+        "available": true,
+        "version": "3.13"
+      },
+      "cpp": {
+        "available": true,
+        "compiler": "g++"
+      }
+    },
+    "token": "test-token"
+  }
+}

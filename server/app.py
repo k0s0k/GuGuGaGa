@@ -10,6 +10,8 @@ from .catalog import BY_ID, summaries, detail, CATEGORY_ORDER
 from .runner import capabilities, run
 from .store import Store
 from .runtime import resource_root
+from .ai_import import split_document
+from .knowledge import validate_document
 
 ROOT = resource_root()
 TOKEN = secrets.token_urlsafe(32)
@@ -43,7 +45,7 @@ def make_handler(store, port, static_root=None):
             return False
 
     class Handler(SimpleHTTPRequestHandler):
-        server_version = "CodeRecall/1.0"
+        server_version = "CodeRecall/2.0"
 
         def __init__(self, *args, **kwargs):
             super().__init__(*args, directory=str(frontend), **kwargs)
@@ -126,8 +128,9 @@ def make_handler(store, port, static_root=None):
                     length = int(lengths[0])
                 except ValueError:
                     return self.send_json({"error": "请求长度格式错误"}, 400)
-                if not 0 < length <= 8 * 1024 * 1024:
-                    return self.send_json({"error": "请求大小无效（最多 8 MB）"}, 413)
+                max_body = 64 * 1024 * 1024 if urlsplit(self.path).path == "/api/action" else 8 * 1024 * 1024
+                if not 0 < length <= max_body:
+                    return self.send_json({"error": f"请求大小无效（最多 {max_body // 1024 // 1024} MB）"}, 413)
                 self.connection.settimeout(10)
                 body = self.rfile.read(length)
                 if len(body) != length:
@@ -140,6 +143,10 @@ def make_handler(store, port, static_root=None):
                 path = urlsplit(self.path).path
                 if path == "/api/action":
                     return self.send_json(store.action(payload))
+                if path == "/api/knowledge/split":
+                    return self.send_json(split_document(payload))
+                if path == "/api/knowledge/validate":
+                    return self.send_json(validate_document(payload))
                 if path == "/api/run":
                     pid = int(payload.get("problemId"))
                     if pid not in BY_ID:
@@ -152,6 +159,8 @@ def make_handler(store, port, static_root=None):
                 return self.send_json({"error": "读取请求超时，请重试"}, 408)
             except (json.JSONDecodeError, UnicodeDecodeError):
                 return self.send_json({"error": "JSON 格式无效，请检查请求或备份文件"}, 400)
+            except RecursionError:
+                return self.send_json({"error": "JSON 嵌套过深，请简化文件结构"}, 400)
             except (ValueError, KeyError, TypeError, OverflowError) as exc:
                 return self.send_json({"error": str(exc) or "请求格式错误"}, 400)
             except Exception as exc:
@@ -163,10 +172,13 @@ def make_handler(store, port, static_root=None):
 def main():
     parser = argparse.ArgumentParser(description="CodeRecall local server")
     parser.add_argument("--port", type=int, default=8766)
-    parser.add_argument("--data", default=str(ROOT / ".local" / "coderecall.db"))
+    parser.add_argument("--data", default=str(ROOT / ".local" / "coderecall-v2.db"))
     args = parser.parse_args()
     if not 1 <= args.port <= 65535:
         parser.error("端口必须位于 1–65535")
+    if Path(args.data).resolve() == (ROOT / ".local" / "coderecall-v2.db").resolve():
+        from desktop_support import migrate_legacy_database
+        migrate_legacy_database(Path(args.data), [ROOT / ".local" / "coderecall.db"])
     store = Store(args.data, BY_ID)
     try:
         server = LocalHTTPServer(("127.0.0.1", args.port), make_handler(store, args.port))

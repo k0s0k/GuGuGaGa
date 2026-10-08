@@ -1,0 +1,121 @@
+.markdown-content {
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.85;
+  overflow-wrap: anywhere;
+}
+.markdown-content > :first-child {
+  margin-top: 0;
+}
+.markdown-content > :last-child {
+  margin-bottom: 0;
+}
+.markdown-content p,
+.markdown-content ul,
+.markdown-content ol,
+.markdown-content blockquote,
+.markdown-content pre,
+.markdown-content table {
+  margin: 0 0 1em;
+}
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3,
+.markdown-content h4,
+.markdown-content h5,
+.markdown-content h6 {
+  margin: 1.4em 0 0.6em;
+  line-height: 1.45;
+  font-weight: 600;
+  color: var(--text);
+}
+.markdown-content h1 {
+  font-size: 1.65em;
+}
+.markdown-content h2 {
+  font-size: 1.4em;
+}
+.markdown-content h3 {
+  font-size: 1.15em;
+}
+.markdown-content ul,
+.markdown-content ol {
+  padding-left: 1.7em;
+}
+.markdown-content li {
+  margin: 0.3em 0;
+}
+.markdown-content li > p {
+  margin: 0.25em 0;
+}
+.markdown-content a {
+  color: var(--green);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.markdown-content blockquote {
+  border-left: 3px solid var(--green);
+  padding: 0.6em 1em;
+  color: var(--text-secondary);
+  background: var(--soft);
+}
+.markdown-content blockquote p:last-child {
+  margin: 0;
+}
+.markdown-content code {
+  font-family: "Cascadia Code", "Consolas", monospace;
+  font-size: 0.91em;
+  background: var(--soft);
+  padding: 0.15em 0.35em;
+  border-radius: 4px;
+  white-space: break-spaces;
+}
+.markdown-content pre {
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--code);
+  overflow-x: auto;
+}
+.markdown-content pre code {
+  padding: 0;
+  background: none;
+  white-space: pre;
+  overflow-wrap: normal;
+}
+.markdown-content .markdown-table-scroll {
+  overflow-x: auto;
+  margin-bottom: 1em;
+}
+.markdown-content table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.94em;
+}
+.markdown-content th,
+.markdown-content td {
+  border: 1px solid var(--line);
+  padding: 7px 11px;
+  text-align: left;
+  min-width: 80px;
+}
+.markdown-content th {
+  background: var(--soft);
+  font-weight: 600;
+}
+.markdown-content input[type="checkbox"] {
+  margin-right: 0.5em;
+  accent-color: var(--green);
+}
+.markdown-content .task-list-item {
+  list-style: none;
+}
+.markdown-content hr {
+  margin: 1.5em 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+}
+.markdown-content .markdown-image-placeholder {
+  color: var(--text-secondary);
+  font-size: 0.9em;
+}

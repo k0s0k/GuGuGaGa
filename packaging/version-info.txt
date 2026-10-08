@@ -1,7 +1,7 @@
 VSVersionInfo(
     ffi=FixedFileInfo(
-        filevers=(1, 0, 0, 0),
-        prodvers=(1, 0, 0, 0),
+        filevers=(2, 0, 0, 0),
+        prodvers=(2, 0, 0, 0),
         mask=0x3f,
         flags=0x0,
         OS=0x40004,
@@ -12,12 +12,12 @@ VSVersionInfo(
     kids=[
         StringFileInfo([
             StringTable('040904B0', [
-                StringStruct('FileDescription', 'CodeRecall - LeetCode Study and Review'),
-                StringStruct('FileVersion', '1.0.0.0'),
+                StringStruct('FileDescription', 'CodeRecall 2 - Knowledge Study and Review'),
+                StringStruct('FileVersion', '2.0.0.0'),
                 StringStruct('InternalName', 'CodeRecall'),
                 StringStruct('OriginalFilename', 'CodeRecall.exe'),
-                StringStruct('ProductName', 'CodeRecall'),
-                StringStruct('ProductVersion', '1.0.0'),
+                StringStruct('ProductName', 'CodeRecall 2'),
+                StringStruct('ProductVersion', '2.0.0'),
             ])
         ]),
         VarFileInfo([VarStruct('Translation', [1033, 1200])]),

@@ -1,7 +1,7 @@
 {
   "name": "code-recall",
   "private": true,
-  "version": "1.0.0",
+  "version": "2.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
@@ -9,17 +9,27 @@
     "preview": "vite preview --host 127.0.0.1",
     "start": "python -m server.app",
     "test": "python -m unittest discover -s tests -v",
-    "format": "prettier --write src vite.config.ts tsconfig.json package.json index.html"
+    "format": "prettier --write src vite.config.ts tsconfig.json package.json index.html",
+    "test:ui": "playwright test",
+    "test:all": "npm run test && npm run build && npm run test:ui"
   },
   "dependencies": {
+    "@codemirror/autocomplete": "^6.20.3",
+    "@codemirror/commands": "^6.11.1",
     "@codemirror/lang-cpp": "^6.0.3",
     "@codemirror/lang-python": "^6.2.1",
+    "@codemirror/language": "^6.13.1",
+    "@codemirror/state": "^6.7.6",
+    "@codemirror/view": "^6.43.14",
     "@uiw/react-codemirror": "^4.23.10",
     "lucide-react": "^0.468.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.4",

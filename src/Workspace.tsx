@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import CodeMirror from "@uiw/react-codemirror";
 import { python } from "@codemirror/lang-python";
 import { cpp } from "@codemirror/lang-cpp";
@@ -40,6 +40,9 @@ import type {
   RunResult,
 } from "./types";
 import { dailyPlan, dayKey, download, dueLabel, ratingLabels } from "./utils";
+import Markdown from "./Markdown";
+import { codeEditingExtensions } from "./editorExtensions";
+import "./workspace-upgrade.css";
 
 interface Props {
   id: number;
@@ -67,9 +70,7 @@ export default function Workspace({
     [language, setLanguage] = useState<Language>(state.settings.language),
     [mode, setMode] = useState<Mode>(state.settings.mode),
     [tab, setTab] = useState("题目"),
-    [answerTab, setAnswerTab] = useState<"brief" | "annotated" | "explanation">(
-      "brief",
-    );
+    [noteView, setNoteView] = useState<"edit" | "preview" | "split">("split");
   const [code, setCode] = useState(""),
     [note, setNote] = useState(state.notes[id] || ""),
     [saved, setSaved] = useState(true),
@@ -97,6 +98,10 @@ export default function Workspace({
     mount = useRef(true),
     runningRef = useRef(false);
   const key = `${id}:${language}:${mode}`;
+  const editorExtensions = useMemo(
+    () => [language === "python" ? python() : cpp(), ...codeEditingExtensions],
+    [language],
+  );
   const pendingRating = useRef<{
     type: "rate";
     problemId: number;
@@ -316,8 +321,6 @@ export default function Workspace({
       </div>
     );
   const next = dailyPlan(problems, state).find((p) => p.id !== id),
-    answer = detail.solutions[language][mode],
-    extension = language === "python" ? python() : cpp(),
     theme = state.settings.theme === "dark" ? "dark" : "light",
     currentResult = result?.cases[caseIndex];
   return (
@@ -481,128 +484,17 @@ export default function Workspace({
               </>
             )}
             {tab === "题解" && (
-              <>
-                <div className="solution-title">
-                  <span className="eyebrow">
-                    ONE PROBLEM, ONE CLEAR SOLUTION
-                  </span>
-                  <h2>{detail.approach}</h2>
-                  <div className="complexity">
-                    <span>
-                      <Clock3 size={14} />
-                      时间 {detail.time}
-                    </span>
-                    <span>
-                      <Code2 size={14} />
-                      空间 {detail.space}
-                    </span>
-                  </div>
-                </div>
-                <div className="segmented solution-tabs">
-                  {(
-                    [
-                      { id: "brief", label: "简洁版" },
-                      { id: "annotated", label: "注释版" },
-                      { id: "explanation", label: "完整解析" },
-                    ] as const
-                  ).map((t) => (
-                    <button
-                      className={answerTab === t.id ? "selected" : ""}
-                      onClick={() => setAnswerTab(t.id)}
-                      key={t.id}
-                    >
-                      {t.label}
-                    </button>
-                  ))}
-                </div>
-                {answerTab === "explanation" ? (
-                  <div className="explanation">
-                    <section>
-                      <h3>解题思路</h3>
-                      <p>{detail.approach}</p>
-                      <ol>
-                        {detail.steps.map((step, i) => (
-                          <li key={i}>
-                            <span>{String(i + 1).padStart(2, "0")}</span>
-                            <p>{step}</p>
-                          </li>
-                        ))}
-                      </ol>
-                    </section>
-                    <section>
-                      <h3>为什么这样做是对的？</h3>
-                      <p>{detail.correctness}</p>
-                    </section>
-                    <section>
-                      <h3>复杂度分析</h3>
-                      <p>
-                        时间复杂度：<code>{detail.time}</code>
-                        <br />
-                        额外空间复杂度：<code>{detail.space}</code>
-                      </p>
-                    </section>
-                    <section className="pitfalls">
-                      <h3>
-                        <Lightbulb size={16} />
-                        这些细节值得记住
-                      </h3>
-                      <ul>
-                        {detail.pitfalls.map((p, i) => (
-                          <li key={i}>{p}</li>
-                        ))}
-                      </ul>
-                    </section>
-                  </div>
-                ) : (
-                  <div className="solution-code">
-                    <div className="code-toolbar">
-                      <span>
-                        {language === "python" ? "Python 3" : "C++ 17"}
-                        <span className="text-dot">·</span>
-                        {mode === "leetcode" ? "LeetCode" : "ACM"}
-                      </span>
-                      <div>
-                        <button
-                          className="icon-btn"
-                          title="复制题解"
-                          onClick={() => void copy(answer[answerTab])}
-                        >
-                          <Copy size={14} />
-                        </button>
-                        <button
-                          className="icon-btn"
-                          title="下载题解"
-                          onClick={() =>
-                            download(
-                              `${detail.slug}-${mode}.${language === "python" ? "py" : "cpp"}`,
-                              answer[answerTab],
-                              "text/plain",
-                            )
-                          }
-                        >
-                          <ArrowDownToLine size={14} />
-                        </button>
-                      </div>
-                    </div>
-                    <CodeMirror
-                      value={answer[answerTab]}
-                      extensions={[extension]}
-                      theme={theme}
-                      editable={false}
-                      basicSetup={{
-                        lineNumbers: true,
-                        foldGutter: false,
-                        highlightActiveLine: false,
-                        highlightActiveLineGutter: false,
-                      }}
-                    />
-                  </div>
-                )}
-                <div className="question-footnote">
-                  <Sparkles size={15} />
-                  简洁版与注释版使用相同算法。建议理解后关掉题解，再独立实现一次。
-                </div>
-              </>
+              <ProblemSolution
+                key={key}
+                problem={detail}
+                language={language}
+                mode={mode}
+                personal={state.solutions?.[key]}
+                theme={theme}
+                mutate={mutate}
+                notify={notify}
+                copy={copy}
+              />
             )}
             {tab === "笔记" && (
               <div className="notes-pane">
@@ -611,15 +503,44 @@ export default function Workspace({
                 <p>
                   为什么这样解？哪里容易错？下次看到什么信号，就该想到这个方法？
                 </p>
-                <textarea
-                  aria-label="我的题目笔记"
-                  maxLength={30000}
-                  value={note}
-                  onChange={(e) => updateNote(e.target.value)}
-                  placeholder={
-                    "可以从这几个问题开始：\n\n• 这道题的关键信号是什么？\n• 核心思路，用一句话怎么说？\n• 我曾经忽略了哪个边界条件？"
-                  }
-                />
+                <div className="note-view-toolbar">
+                  <div className="segmented" aria-label="笔记显示方式">
+                    {(
+                      [
+                        { id: "edit", label: "编辑" },
+                        { id: "preview", label: "预览" },
+                        { id: "split", label: "分栏" },
+                      ] as const
+                    ).map((item) => (
+                      <button
+                        key={item.id}
+                        className={noteView === item.id ? "selected" : ""}
+                        onClick={() => setNoteView(item.id)}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                  <span>Markdown · 标题 / 列表 / 表格 / 代码块</span>
+                </div>
+                <div className={"note-content-layout " + noteView}>
+                  {noteView !== "preview" && (
+                    <textarea
+                      aria-label="我的题目笔记"
+                      maxLength={30000}
+                      value={note}
+                      onChange={(e) => updateNote(e.target.value)}
+                      placeholder={
+                        "## 关键信号\n\n- 核心思路\n- 易错边界\n\n```python\n# 写下值得记住的代码\n```"
+                      }
+                    />
+                  )}
+                  {noteView !== "edit" && (
+                    <div className="note-preview" aria-label="笔记预览">
+                      {note && <Markdown>{note}</Markdown>}
+                    </div>
+                  )}
+                </div>
                 <div className="note-footer">
                   <span>
                     <Save size={13} />
@@ -752,17 +673,23 @@ export default function Workspace({
             <CodeMirror
               value={code}
               height="100%"
-              extensions={[extension]}
+              extensions={editorExtensions}
+              indentWithTab={false}
               theme={theme}
               onChange={updateCode}
               basicSetup={{
                 lineNumbers: true,
                 foldGutter: true,
-                autocompletion: true,
+                autocompletion: false,
+                completionKeymap: false,
                 highlightActiveLine: true,
                 bracketMatching: true,
               }}
             />
+          </div>
+          <div className="editor-keyboard-hint">
+            Enter 换行并缩进 · Tab 接受补全 / 缩进 · Shift + Tab 取消缩进 · Ctrl
+            + Space 补全 · 4 空格
           </div>
           <div className="editor-status">
             <span>
@@ -1005,5 +932,445 @@ export default function Workspace({
         </div>
       )}
     </div>
+  );
+}
+
+type PersonalSolution = {
+  brief: string;
+  annotated: string;
+  explanation: string;
+};
+type SolutionSection = keyof PersonalSolution;
+
+function referenceSolution(
+  problem: Detail,
+  language: Language,
+  mode: Mode,
+): PersonalSolution {
+  return {
+    ...problem.solutions[language][mode],
+    explanation: [
+      "## 解题思路",
+      problem.approach,
+      problem.steps.map((step, i) => `${i + 1}. ${step}`).join("\n"),
+      "## 为什么这样做是对的？",
+      problem.correctness,
+      "## 复杂度分析",
+      `- 时间复杂度：${problem.time}\n- 额外空间复杂度：${problem.space}`,
+      "## 这些细节值得记住",
+      problem.pitfalls.map((item) => `- ${item}`).join("\n"),
+    ].join("\n\n"),
+  };
+}
+
+function readSolutionDraft(key: string): PersonalSolution | null {
+  try {
+    const value: unknown = JSON.parse(localStorage.getItem(key) || "null");
+    if (
+      value &&
+      typeof value === "object" &&
+      ["brief", "annotated", "explanation"].every(
+        (field) =>
+          typeof (value as Record<string, unknown>)[field] === "string",
+      )
+    ) {
+      return value as PersonalSolution;
+    }
+  } catch {
+    /* Keep invalid browser data out of the editor. */
+  }
+  return null;
+}
+
+function ProblemSolution({
+  problem,
+  language,
+  mode,
+  personal,
+  theme,
+  mutate,
+  notify,
+  copy,
+}: {
+  problem: Detail;
+  language: Language;
+  mode: Mode;
+  personal: (PersonalSolution & { updatedAt: string }) | undefined;
+  theme: "light" | "dark";
+  mutate: Props["mutate"];
+  notify: Props["notify"];
+  copy: (value: string) => Promise<void>;
+}) {
+  const storageKey = `coderecall-solution-draft-${problem.id}:${language}:${mode}`;
+  const reference = referenceSolution(problem, language, mode);
+  const [initialDraft] = useState(() => readSolutionDraft(storageKey));
+  const [source, setSource] = useState<"reference" | "personal">(
+    personal || initialDraft ? "personal" : "reference",
+  );
+  const [editing, setEditing] = useState(Boolean(initialDraft));
+  const [value, setValue] = useState<PersonalSolution>(
+    initialDraft ?? personal ?? reference,
+  );
+  const [answerTab, setAnswerTab] = useState<SolutionSection>("brief");
+  const [saving, setSaving] = useState(false);
+  const [draftStored, setDraftStored] = useState(Boolean(initialDraft));
+  const [confirmAction, setConfirmAction] = useState<"cancel" | "reset" | null>(
+    null,
+  );
+  const storageWarning = useRef(false);
+  const shown = source === "reference" ? reference : editing ? value : personal;
+  const editorExtensions = useMemo(
+    () => [language === "python" ? python() : cpp(), ...codeEditingExtensions],
+    [language],
+  );
+
+  const remember = (next: PersonalSolution) => {
+    setValue(next);
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(next));
+      setDraftStored(true);
+    } catch {
+      setDraftStored(false);
+      if (!storageWarning.current) {
+        storageWarning.current = true;
+        notify("浏览器草稿空间不足，请先保存题解再切换页面。");
+      }
+    }
+  };
+  useEffect(() => {
+    if (!editing || draftStored) return;
+    const guard = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", guard);
+    return () => window.removeEventListener("beforeunload", guard);
+  }, [editing, draftStored]);
+  const removeDraft = (savedValue?: PersonalSolution) => {
+    try {
+      // A save can finish after navigating away and editing this variant again.
+      // Never remove a newer local draft in that case.
+      if (
+        savedValue &&
+        localStorage.getItem(storageKey) !== JSON.stringify(savedValue)
+      )
+        return;
+      localStorage.removeItem(storageKey);
+    } catch {
+      /* Browser may prohibit storage. */
+    }
+    setDraftStored(false);
+  };
+  const begin = () => {
+    setSource("personal");
+    if (!editing) {
+      remember(
+        personal
+          ? {
+              brief: personal.brief,
+              annotated: personal.annotated,
+              explanation: personal.explanation,
+            }
+          : reference,
+      );
+      setEditing(true);
+    }
+  };
+  const save = async () => {
+    if (saving) return;
+    if (value.brief.length > 100000 || value.annotated.length > 100000) {
+      notify("每个代码版本最多 100000 字，请缩短后保存。");
+      return;
+    }
+    setSaving(true);
+    try {
+      await mutate({
+        type: "solution",
+        problemId: problem.id,
+        language,
+        mode,
+        solution: value,
+      });
+      removeDraft(value);
+      setEditing(false);
+      notify("我的题解已保存 · 简洁版、注释版与完整解析");
+    } catch {
+      notify("保存失败，题解草稿已保留，请重试。");
+    } finally {
+      setSaving(false);
+    }
+  };
+  const confirm = async () => {
+    if (confirmAction === "cancel") {
+      removeDraft();
+      setEditing(false);
+      setConfirmAction(null);
+      setSource(personal ? "personal" : "reference");
+      return;
+    }
+    setSaving(true);
+    try {
+      await mutate({
+        type: "solution-reset",
+        problemId: problem.id,
+        language,
+        mode,
+      });
+      removeDraft();
+      setEditing(false);
+      setSource("reference");
+      setConfirmAction(null);
+      notify("当前语言与模式已恢复使用内置题解");
+    } catch {
+      notify("恢复失败，原题解已保留，请重试。");
+    } finally {
+      setSaving(false);
+    }
+  };
+  return (
+    <>
+      <div className="solution-title">
+        <span className="eyebrow">MAKE THE SOLUTION YOUR OWN</span>
+        <h2>{source === "reference" ? problem.approach : "我的题解"}</h2>
+        {source === "reference" ? (
+          <div className="complexity">
+            <span>
+              <Clock3 size={14} />
+              时间 {problem.time}
+            </span>
+            <span>
+              <Code2 size={14} />
+              空间 {problem.space}
+            </span>
+          </div>
+        ) : (
+          <p className="solution-personal-meta">
+            {language === "python" ? "Python 3" : "C++ 17"} ·{" "}
+            {mode === "leetcode" ? "LeetCode" : "ACM"} ·
+            用自己的思路整理三个版本
+          </p>
+        )}
+      </div>
+      <div className="solution-source-bar">
+        <div className="segmented" aria-label="题解来源">
+          <button
+            className={source === "reference" ? "selected" : ""}
+            onClick={() => setSource("reference")}
+          >
+            内置题解
+          </button>
+          <button
+            className={source === "personal" ? "selected" : ""}
+            onClick={() => setSource("personal")}
+          >
+            我的题解{personal && " · 已保存"}
+          </button>
+        </div>
+        <button className="secondary small" disabled={saving} onClick={begin}>
+          {editing ? "继续编辑" : personal ? "编辑我的题解" : "创建我的题解"}
+        </button>
+      </div>
+      {editing && source === "reference" && (
+        <div className="solution-draft-notice">
+          我的题解草稿已保留。切换回“我的题解”可继续编辑。
+        </div>
+      )}
+      {source === "personal" && editing && (
+        <div className="solution-edit-actions">
+          <span className="solution-save-state">
+            <Save size={13} />
+            {draftStored ? "草稿已保留，点击保存后生效" : "编辑中，请及时保存"}
+          </span>
+          <div>
+            <button
+              className="secondary small"
+              disabled={saving}
+              onClick={() => setConfirmAction("cancel")}
+            >
+              取消编辑
+            </button>
+            <button
+              className="primary small"
+              disabled={saving}
+              onClick={() => void save()}
+            >
+              {saving ? "正在保存…" : "保存题解"}
+            </button>
+          </div>
+        </div>
+      )}
+      {shown ? (
+        <>
+          <div className="segmented solution-tabs">
+            {(
+              [
+                { id: "brief", label: "简洁版" },
+                { id: "annotated", label: "注释版" },
+                { id: "explanation", label: "完整解析" },
+              ] as const
+            ).map((item) => (
+              <button
+                key={item.id}
+                className={answerTab === item.id ? "selected" : ""}
+                onClick={() => setAnswerTab(item.id)}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+          {answerTab === "explanation" ? (
+            source === "personal" && editing ? (
+              <>
+                <textarea
+                  className="solution-description-edit"
+                  aria-label="我的完整解析 Markdown"
+                  value={value.explanation}
+                  maxLength={30000}
+                  disabled={saving}
+                  onChange={(event) =>
+                    remember({ ...value, explanation: event.target.value })
+                  }
+                  placeholder="## 解题思路\n用你自己的语言解释为什么这样做。"
+                />
+                <div className="solution-explanation-preview">
+                  <span>Markdown 预览</span>
+                  <Markdown>{value.explanation}</Markdown>
+                </div>
+              </>
+            ) : (
+              <Markdown>{shown.explanation || "_尚未填写完整解析。_"}</Markdown>
+            )
+          ) : (
+            <div className="solution-code">
+              <div className="code-toolbar">
+                <span>
+                  {language === "python" ? "Python 3" : "C++ 17"}
+                  <span className="text-dot">·</span>
+                  {mode === "leetcode" ? "LeetCode" : "ACM"}
+                  {source === "personal" && editing ? " · 可编辑" : ""}
+                </span>
+                <div>
+                  <button
+                    className="icon-btn"
+                    title="复制题解"
+                    onClick={() => void copy(shown[answerTab])}
+                  >
+                    <Copy size={14} />
+                  </button>
+                  <button
+                    className="icon-btn"
+                    title="下载题解"
+                    onClick={() =>
+                      download(
+                        `${problem.slug}-${mode}-${answerTab}.${language === "python" ? "py" : "cpp"}`,
+                        shown[answerTab],
+                        "text/plain",
+                      )
+                    }
+                  >
+                    <ArrowDownToLine size={14} />
+                  </button>
+                </div>
+              </div>
+              <CodeMirror
+                key={answerTab}
+                aria-label={
+                  answerTab === "brief" ? "简洁版题解代码" : "注释版题解代码"
+                }
+                value={shown[answerTab]}
+                extensions={editorExtensions}
+                indentWithTab={false}
+                theme={theme}
+                editable={source === "personal" && editing && !saving}
+                onChange={(text) => {
+                  if (source === "personal" && editing)
+                    remember({ ...value, [answerTab]: text });
+                }}
+                basicSetup={{
+                  lineNumbers: true,
+                  foldGutter: false,
+                  highlightActiveLine: editing,
+                  highlightActiveLineGutter: editing,
+                  autocompletion: false,
+                  completionKeymap: false,
+                }}
+              />
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="solution-personal-empty">
+          <p>
+            还没有当前语言与模式的自定义题解。以内置题解为起点，改成更适合自己的写法。
+          </p>
+          <button className="primary small" onClick={begin}>
+            从内置题解开始编辑
+          </button>
+        </div>
+      )}
+      {source === "personal" && personal && !editing && (
+        <div className="solution-edit-actions">
+          <span>
+            已保存于 {new Date(personal.updatedAt).toLocaleString("zh-CN")}
+          </span>
+          <button
+            className="text-button"
+            onClick={() => setConfirmAction("reset")}
+          >
+            <RotateCcw size={13} />
+            恢复内置题解
+          </button>
+        </div>
+      )}
+      <div className="question-footnote">
+        <Sparkles size={15} />
+        {editing
+          ? "三个版本独立编辑；切换语言或模式会保留各自草稿。"
+          : "理解后合上题解，再尝试独立实现一次。"}
+      </div>
+      {confirmAction && (
+        <div className="modal-backdrop solution-revert-modal">
+          <section
+            className="modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label={
+              confirmAction === "cancel" ? "放弃题解草稿" : "恢复内置题解"
+            }
+          >
+            <h2>
+              {confirmAction === "cancel"
+                ? "放弃本次题解草稿？"
+                : "恢复内置题解？"}
+            </h2>
+            <p>
+              {confirmAction === "cancel"
+                ? "仅删除当前语言与模式尚未保存的修改，已保存的题解会保留。"
+                : "当前语言与模式的自定义题解将被删除。其他语言和模式的题解会保留。"}
+            </p>
+            <div className="button-group">
+              <button
+                className="secondary"
+                disabled={saving}
+                onClick={() => setConfirmAction(null)}
+              >
+                继续保留
+              </button>
+              <button
+                className="primary"
+                disabled={saving}
+                onClick={() => void confirm()}
+              >
+                {saving
+                  ? "处理中…"
+                  : confirmAction === "cancel"
+                    ? "放弃草稿"
+                    : "确认恢复"}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+    </>
   );
 }

@@ -1,0 +1,47 @@
+{
+  "format": "coderecall.knowledge",
+  "version": 1,
+  "deck": {
+    "id": "getting-started-v1",
+    "title": "通用学习示例",
+    "description": "包含 C++、英语、Blender 与 UE5 的示例卡片。导入后可编辑为自己的学习内容；制作新知识库时请删除或修改示例 ID。"
+  },
+  "items": [
+    {
+      "id": "example-cpp-raii",
+      "title": "C++：RAII 的核心思想",
+      "kind": "qa",
+      "prompt": "RAII 如何把资源释放与对象生命周期联系起来？",
+      "answer": "把资源的所有权交给对象，在构造时取得资源，在析构时释放资源。\n\n这样，作用域结束或异常导致栈展开时，具有自动存储期的管理对象会执行析构，减少忘记释放资源的情况。\n\n例如用 `std::unique_ptr` 管理独占的动态对象，而不是手动配对每条 `new` 与 `delete`。",
+      "tags": ["C++", "资源管理"],
+      "source": "个人笔记 / C++ / RAII"
+    },
+    {
+      "id": "example-english-consistent",
+      "title": "英语：consistent 的常见含义",
+      "kind": "cloze",
+      "prompt": "consistent 可以表示 {{c1::一致的}}；描述表现时也可以表示 {{c2::稳定的}}。",
+      "answer": "**consistent**：一致的；稳定的。\n\n例句：Her results are consistent.\n\n她的成绩很稳定。",
+      "tags": ["英语", "词汇"],
+      "source": "个人英语笔记"
+    },
+    {
+      "id": "example-blender-review",
+      "title": "Blender：检查一段动画的运动变化",
+      "kind": "procedure",
+      "prompt": "练习完成后，如何检查一段关键帧动画的运动是否符合预期？",
+      "answer": "1. 确认动画的开始和结束画面符合目标。\n2. 慢速观察关键帧之间的位置、旋转或缩放变化。\n3. 找出速度突变、穿插或不自然的停顿。\n4. 调整相关关键帧与插值，再次播放对比。\n5. 在笔记中记录原因、修改方式和效果。\n\n请按自己的项目补充具体参数和截图来源。",
+      "tags": ["Blender", "动画", "操作步骤"],
+      "source": "个人练习 / 动画检查清单"
+    },
+    {
+      "id": "example-ue5-state-machine",
+      "title": "UE5：用状态与转移描述角色行为",
+      "kind": "qa",
+      "prompt": "以待机、行走、跳跃为例，状态与转移条件分别描述什么？",
+      "answer": "**状态**描述角色当前所处的行为；**转移条件**描述何时切换到另一个行为。\n\n例如从待机切换到行走，可以用角色开始移动作为条件。把自己的项目中使用的变量、条件和边界情况写在这里，形成可复习的具体规则。",
+      "tags": ["UE5", "游戏逻辑"],
+      "source": "个人项目 / 角色行为笔记"
+    }
+  ]
+}

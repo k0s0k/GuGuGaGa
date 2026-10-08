@@ -3,7 +3,7 @@ $ErrorActionPreference = 'Stop'
 # The packaged copy of this script lives beside CodeRecall.exe.
 $executablePath = Join-Path $PSScriptRoot 'CodeRecall.exe'
 if (-not (Test-Path -LiteralPath $executablePath -PathType Leaf)) {
-    throw 'CodeRecall.exe was not found beside this script. Run the copy inside release\CodeRecall.'
+    throw 'CodeRecall.exe was not found beside this script. Run the copy inside release\CodeRecall-v2.0.0.'
 }
 $executablePath = (Resolve-Path -LiteralPath $executablePath).ProviderPath
 $workingDirectory = Split-Path -Parent $executablePath
@@ -20,7 +20,7 @@ try {
         $shortcut.TargetPath = $executablePath
         $shortcut.WorkingDirectory = $workingDirectory
         $shortcut.IconLocation = $executablePath + ',0'
-        $shortcut.Description = 'CodeRecall - LeetCode Hot100 practice and review'
+        $shortcut.Description = 'CodeRecall 2 - Knowledge study and spaced repetition'
         $shortcut.Save()
     }
     finally {
@@ -29,7 +29,7 @@ try {
 
     $number = 1
     while ($true) {
-        $name = if ($number -eq 1) { 'CodeRecall.lnk' } else { 'CodeRecall (' + $number + ').lnk' }
+        $name = if ($number -eq 1) { 'CodeRecall 2.lnk' } else { 'CodeRecall 2 (' + $number + ').lnk' }
         $shortcutPath = Join-Path $desktopDirectory $name
         if (Test-Path -LiteralPath $shortcutPath) {
             $existing = $null

@@ -3,6 +3,7 @@ export type Mode = "leetcode" | "acm";
 export type Rating = "again" | "hard" | "good" | "easy";
 export type View =
   | "today"
+  | "knowledge"
   | "library"
   | "review"
   | "calendar"
@@ -19,6 +20,7 @@ export interface Problem {
   time: string;
   space: string;
   order: number;
+  knowledgeId?: string;
 }
 export interface Card {
   stability: number;
@@ -45,6 +47,7 @@ export interface Settings {
   mode: Mode;
   retention: number;
   theme: "light" | "dark";
+  includeHot100: boolean;
 }
 export interface AppState {
   version: number;
@@ -55,6 +58,57 @@ export interface AppState {
   drafts: Record<string, string>;
   events: StudyEvent[];
   checkins: string[];
+  solutions: Record<string, SavedSolution>;
+  decks: Record<string, KnowledgeDeck>;
+  knowledge: Record<string, KnowledgeItem>;
+  knowledgeCards: Record<string, Card>;
+  knowledgeNotes: Record<string, string>;
+  knowledgeFavorites: string[];
+  knowledgeEvents: KnowledgeEvent[];
+}
+export interface SavedSolution {
+  brief: string;
+  annotated: string;
+  explanation: string;
+  updatedAt: string;
+}
+export type KnowledgeKind = "qa" | "cloze" | "procedure";
+export interface KnowledgeDeck {
+  id: string;
+  title: string;
+  description: string;
+  createdAt: string;
+  updatedAt: string;
+}
+export interface KnowledgeItem {
+  id: string;
+  deckId: string;
+  title: string;
+  kind: KnowledgeKind;
+  prompt: string;
+  answer: string;
+  tags: string[];
+  source: string;
+  archived: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+export interface KnowledgeEvent extends Omit<StudyEvent, "problemId"> {
+  itemId: string;
+}
+export interface KnowledgeDocument {
+  format: "coderecall.knowledge";
+  version: 1;
+  deck: { id?: string; title: string; description?: string };
+  items: {
+    id?: string;
+    title: string;
+    kind: KnowledgeKind;
+    prompt: string;
+    answer: string;
+    tags?: string[];
+    source?: string;
+  }[];
 }
 export interface Capabilities {
   python: { available: boolean; version: string };

@@ -4,6 +4,7 @@ import type {
   Detail,
   Problem,
   RunResult,
+  KnowledgeDocument,
 } from "./types";
 let token = "";
 let queue: Promise<unknown> = Promise.resolve();
@@ -46,3 +47,7 @@ export function action(payload: unknown): Promise<AppState> {
 }
 export const runCode = (payload: unknown) =>
   request<RunResult>("/run", payload);
+export const splitDocument = (payload: unknown) =>
+  request<KnowledgeDocument>("/knowledge/split", payload);
+export const validateDocument = (payload: unknown) =>
+  request<KnowledgeDocument>("/knowledge/validate", payload);

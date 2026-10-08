@@ -25,3 +25,9 @@ The frozen launcher was built with PyInstaller (GPL with a bootloader
 exception that permits distributing bundled applications):
   https://pyinstaller.org/en/stable/license.html
 License: _internal/licenses/pyinstaller/COPYING.txt
+
+Frontend libraries
+React, React DOM, CodeMirror, react-codemirror, Lucide, react-markdown,
+remark-gfm, and their installed dependencies are used to build the frontend.
+Their package versions, declared licenses, and available original license texts
+are collected from the installed packages into THIRD-PARTY-FRONTEND.txt.

@@ -10,18 +10,18 @@ import tempfile
 import time
 
 
-def data_directory() -> Path:
+def data_directory(app_name='CodeRecall') -> Path:
     """Return an existing per-user data directory, independent of the EXE location."""
     if sys.platform == 'win32':
         configured = os.environ.get('LOCALAPPDATA', '').strip()
         base = Path(configured) if configured and Path(configured).is_absolute() else Path.home() / 'AppData' / 'Local'
-        directory = base / 'CodeRecall'
+        directory = base / app_name
     elif sys.platform == 'darwin':
-        directory = Path.home() / 'Library' / 'Application Support' / 'CodeRecall'
+        directory = Path.home() / 'Library' / 'Application Support' / app_name
     else:
         configured = os.environ.get('XDG_DATA_HOME', '').strip()
         base = Path(configured) if configured and Path(configured).is_absolute() else Path.home() / '.local' / 'share'
-        directory = base / 'coderecall'
+        directory = base / app_name.lower()
     directory.mkdir(parents=True, exist_ok=True)
     return directory
 
@@ -31,9 +31,16 @@ def _reject_json_constant(value):
 
 
 def _is_state(value) -> bool:
-    """Recognize the complete version-1 state envelope, not just a version flag."""
-    if not isinstance(value, dict) or type(value.get('version')) is not int or value['version'] != 1:
+    """Recognize an application state envelope before copying a legacy database."""
+    if not isinstance(value, dict) or type(value.get('version')) is not int or value['version'] not in (1, 2):
         return False
+    if value['version'] == 2:
+        for key in ('solutions', 'decks', 'knowledge', 'knowledgeCards', 'knowledgeNotes'):
+            if not isinstance(value.get(key), dict):
+                return False
+        for key in ('knowledgeFavorites', 'knowledgeEvents'):
+            if not isinstance(value.get(key), list):
+                return False
     for key in ('settings', 'cards', 'notes', 'drafts'):
         if not isinstance(value.get(key), dict):
             return False

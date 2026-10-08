@@ -66,4 +66,4 @@ exe = EXE(
     version=str(ROOT / "packaging" / "version-info.txt"),
     contents_directory="_internal",
 )
-coll = COLLECT(exe, a.binaries, a.datas, strip=False, upx=False, name="CodeRecall")
+coll = COLLECT(exe, a.binaries, a.datas, strip=False, upx=False, name="CodeRecall-v2.0.0")
