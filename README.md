@@ -40,7 +40,7 @@
 
 ## 安装与使用
 
-当前桌面构建位于 **`release/GuGuGaGa-v2.4.0/`**。
+当前桌面构建位于 **`release/GuGuGaGa-v2.4.1/`**。
 
 1. 打开其中的 **`GuGuGaGa.exe`**；运行 `create-shortcut.cmd` 可创建桌面快捷方式。
 2. 在「我的知识库」创建主题与卡片，或导入笔记；算法练习进入 Hot100 题库。

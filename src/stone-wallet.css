@@ -301,11 +301,6 @@
   color: var(--red, #d75568);
   margin-bottom: 15px;
 }
-.coach-scene > .journey-icon {
-  width: 104px;
-  height: 104px;
-  transform: rotate(-7deg);
-}
 @media (min-width: 1181px) {
   .stone-collection:not(.is-compact) {
     display: grid;

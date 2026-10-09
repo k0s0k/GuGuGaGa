@@ -37,7 +37,7 @@ APP_NAME = "GuGuGaGa"
 # Keep the v2 activation protocol and data directory compatible with CodeRecall.
 APP_ID = "CodeRecall.Desktop.2"
 WINDOWS_APP_ID = "GuGuGaGa.Desktop"
-VERSION = "2.4.0"
+VERSION = "2.4.1"
 LOGGER = logging.getLogger("coderecall.desktop")
 
 
@@ -190,9 +190,11 @@ def native_window(service: DesktopService, directory: Path, smoke_report: Path |
                         hasManualCheckin="签到" in text, hasPanelLayout="面板布局" in text,
                         hasJourneyIcon=bool(window.evaluate_js("Boolean(document.querySelector('svg.journey-icon[data-journey-icon=\"banner\"]'))")),
                         hasStoneWallet=bool(window.evaluate_js("Boolean(document.querySelector('[data-stone-wallet]'))")),
+                        hasCoachAppIcon=bool(window.evaluate_js("Boolean(document.querySelector('.coach-scene img[src=\"/gugugaga-icon.png\"]')?.naturalWidth > 0)")),
                     )
                     if (outcome["theme"] == "dark" and outcome["hasManualCheckin"]
-                            and outcome["hasPanelLayout"] and outcome["hasJourneyIcon"] and outcome["hasStoneWallet"]):
+                            and outcome["hasPanelLayout"] and outcome["hasJourneyIcon"]
+                            and outcome["hasStoneWallet"] and outcome["hasCoachAppIcon"]):
                         outcome["passed"] = True
                         break
             except Exception:

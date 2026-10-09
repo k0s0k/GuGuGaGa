@@ -250,10 +250,7 @@ export default function LearningDashboard({
             </div>
             <div className="coach-scene" aria-hidden="true">
               <span className="coach-spark spark-one">✦</span>
-              <JourneyIcon
-                kind={achieved ? "complete" : "banner"}
-                current={!achieved}
-              />
+              <img src="/gugugaga-icon.png" alt="" />
               <span className="coach-spark spark-two">✧</span>
               <span className="coach-bubble">
                 {achieved ? "好耶，目标达成！" : "咕嘎陪你一起！"}
