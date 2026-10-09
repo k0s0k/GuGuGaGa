@@ -3,7 +3,7 @@ $ErrorActionPreference = 'Stop'
 # The packaged copy of this script lives beside GuGuGaGa.exe.
 $executablePath = Join-Path $PSScriptRoot 'GuGuGaGa.exe'
 if (-not (Test-Path -LiteralPath $executablePath -PathType Leaf)) {
-    throw 'GuGuGaGa.exe was not found beside this script. Run the copy inside release\GuGuGaGa-v2.2.0.'
+    throw 'GuGuGaGa.exe was not found beside this script. Run the copy inside release\GuGuGaGa-v2.2.1.'
 }
 $executablePath = (Resolve-Path -LiteralPath $executablePath).ProviderPath
 $workingDirectory = Split-Path -Parent $executablePath

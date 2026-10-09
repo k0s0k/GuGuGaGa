@@ -78,7 +78,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\setup-cpp.ps1
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-desktop.ps1
 ```
 
-构建脚本在 `.local/package-env` 准备桌面依赖，校验嵌入式 Python，输出 `release/GuGuGaGa-v2.2.0/`。`-SkipInstall` 复用打包依赖，`-SkipFrontend` 复用前端构建。发行目录包含运行环境、快捷方式脚本、知识库模板与第三方许可证。
+构建脚本在 `.local/package-env` 准备桌面依赖，校验嵌入式 Python，输出 `release/GuGuGaGa-v2.2.1/`。`-SkipInstall` 复用打包依赖，`-SkipFrontend` 复用前端构建。发行目录包含运行环境、快捷方式脚本、知识库模板与第三方许可证。
 
 ## 数据、备份与兼容
 

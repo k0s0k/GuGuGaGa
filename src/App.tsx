@@ -1243,7 +1243,7 @@ function Calendar({
           <div className="panel-bottom">
             <span>
               <i className="status-dot" />
-              绿色表示有学习记录
+              黄色表示有学习记录
             </span>
             <span>
               本月学习 {new Set(monthEvents.map((e) => e.problemId)).size} 项 ·

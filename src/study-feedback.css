@@ -23,8 +23,8 @@
   display: grid;
   place-items: center;
   flex-shrink: 0;
-  color: #58a700;
-  background: color-mix(in srgb, #89d329 15%, var(--panel));
+  color: var(--green);
+  background: color-mix(in srgb, #ffd25b 15%, var(--panel));
   border-radius: 12px;
 }
 .study-progress.is-complete .study-progress-icon {
@@ -48,7 +48,7 @@
   font-weight: 700;
 }
 .study-progress-label > span {
-  color: #58a700;
+  color: var(--green);
   font-weight: 800;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
@@ -68,7 +68,7 @@
   min-width: 0;
   height: 100%;
   border-radius: inherit;
-  background: #78c721;
+  background: var(--button-green);
   transition: width 600ms cubic-bezier(0.2, 0.8, 0.3, 1);
 }
 .study-progress-track > span::before {
@@ -96,9 +96,9 @@
   font-family: inherit;
 }
 .study-rating-buttons {
-  --rating-color: #4d9400;
-  --rating-shade: #aad966;
-  --rating-tint: #e8f7d7;
+  --rating-color: #775700;
+  --rating-shade: #efc135;
+  --rating-tint: #fff0b5;
 }
 .knowledge-study .study-rating-buttons > button,
 .workspace .study-rating-buttons > button {
@@ -161,9 +161,9 @@
   align-items: center;
   gap: 12px;
   padding: 15px;
-  border: 2px solid color-mix(in srgb, #89c23b 40%, var(--line));
+  border: 2px solid color-mix(in srgb, #e8bb3a 40%, var(--line));
   border-radius: 16px;
-  background: color-mix(in srgb, #b3e875 15%, var(--panel));
+  background: color-mix(in srgb, #ffe28a 15%, var(--panel));
   margin: 16px 0 4px;
   overflow: hidden;
   animation: study-answer-in 260ms ease-out both;
@@ -172,7 +172,7 @@
   display: grid;
   place-items: center;
   flex-shrink: 0;
-  color: #58a700;
+  color: var(--green);
 }
 .study-confirmed-copy {
   display: grid;
@@ -181,7 +181,7 @@
 }
 .study-confirmed-copy strong {
   font-size: 14px;
-  color: #4a8c00;
+  color: var(--green);
 }
 .study-confirmed-copy > span {
   font-size: 11px;
@@ -224,7 +224,7 @@
 }
 [data-theme="dark"] .study-confirmed-copy strong,
 [data-theme="dark"] .study-progress-label > span {
-  color: #98d34c;
+  color: var(--green);
 }
 [data-theme="dark"] .goal-reached .study-confirmed-copy strong {
   color: #f7cc58;

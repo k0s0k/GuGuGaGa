@@ -46,13 +46,13 @@
   min-width: 0;
 }
 .journey-banner {
-  background: #58b900;
-  color: #fff;
+  background: var(--button-green);
+  color: var(--button-label);
   padding: 24px;
   display: flex;
   align-items: center;
   gap: 16px;
-  border-bottom: 5px solid #469800;
+  border-bottom: 5px solid var(--green-deep);
 }
 .journey-banner-icon {
   display: grid;
@@ -60,7 +60,7 @@
   width: 56px;
   height: 60px;
   flex-shrink: 0;
-  border: 2px solid #ffffff50;
+  border: 2px solid #8b650a45;
   border-radius: 18px;
   background: #ffffff18;
   transform: rotate(-7deg);
@@ -91,7 +91,7 @@
   flex-shrink: 0;
   height: 44px;
   width: 44px;
-  border: 2px solid #ffffff60;
+  border: 2px solid #8b650a45;
   border-radius: 14px;
   box-shadow: 0 3px 0 #00000013;
 }
@@ -231,11 +231,11 @@
     inset 0 3px 0 #ffffff70;
 }
 .journey-step.current .step-orbit {
-  background: #58b900;
-  color: white;
-  border-color: #6bc829;
+  background: var(--button-green);
+  color: var(--button-label);
+  border-color: #ffdb74;
   box-shadow:
-    0 7px 0 #438d00,
+    0 7px 0 var(--green-deep),
     inset 0 3px 0 #ffffff30;
   outline: 3px solid var(--green-light);
   outline-offset: 7px;
@@ -245,7 +245,7 @@
 }
 .journey-step:active .step-orbit {
   transform: translateY(5px);
-  box-shadow: 0 2px 0 #7d9b73;
+  box-shadow: 0 2px 0 var(--green-deep);
 }
 .step-content {
   min-width: 0;
@@ -392,8 +392,8 @@
   height: 102px;
   object-fit: contain;
   border-radius: 50%;
-  border: 5px solid #d8f3b7;
-  box-shadow: 0 5px 0 #b5d798;
+  border: 5px solid #ffe7a0;
+  box-shadow: 0 5px 0 #e7bd4a;
   transform: rotate(-7deg);
 }
 .coach-scene:hover img {
@@ -425,7 +425,7 @@
   right: 20px;
   bottom: 15px;
   font-size: 24px;
-  color: #63ba15;
+  color: #dbac21;
 }
 .quest-count {
   display: flex;
@@ -458,7 +458,7 @@
   display: block;
   position: relative;
   min-width: 0;
-  background: #69c921;
+  background: var(--button-green);
   border-radius: 10px;
   transition: width 0.5s ease;
 }
@@ -477,7 +477,7 @@
   line-height: 1.8;
 }
 .quest-card.is-complete {
-  border-color: #c5e99e;
+  border-color: #efd78b;
 }
 .streak-summary {
   display: flex;
@@ -652,10 +652,10 @@
   box-shadow: 0 7px 0 #251a3b;
 }
 [data-theme="dark"] .journey-step.current .step-orbit {
-  background: #58a900;
-  border-color: #75bf27;
-  color: white;
-  box-shadow: 0 7px 0 #356800;
+  background: var(--button-green);
+  border-color: #ffe082;
+  color: var(--button-label);
+  box-shadow: 0 7px 0 var(--green-deep);
 }
 [data-theme="dark"] .step-kind,
 [data-theme="dark"] .summary-symbol.blue {
@@ -674,8 +674,8 @@
   color: #ffbe58;
 }
 [data-theme="dark"] .coach-scene img {
-  border-color: #58843b;
-  box-shadow: 0 5px 0 #2e5721;
+  border-color: #9a7926;
+  box-shadow: 0 5px 0 #5c4517;
 }
 @keyframes coach-wiggle {
   0%,
