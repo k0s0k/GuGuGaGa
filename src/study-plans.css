@@ -1,0 +1,216 @@
+.sidebar-study-plans .nav-label {
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.study-plan-manager {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+}
+.study-plan-entry + .study-plan-entry {
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+  margin-top: 12px;
+}
+.sidebar-study-plans .plan-link {
+  width: 100%;
+  min-width: 0;
+  text-align: left;
+  border-radius: 8px;
+}
+.sidebar-study-plans .plan-link:hover {
+  background: var(--hover);
+}
+.sidebar-study-plans .plan-link > span {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.study-plan-add {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+  padding: 10px 6px;
+  font-size: 11px;
+  color: var(--green);
+  text-align: left;
+}
+.study-plan-empty {
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--text-secondary);
+  padding: 10px 6px;
+}
+.study-plan-dialog {
+  width: min(540px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  padding: 0;
+  overflow: hidden;
+  border: 2px solid var(--line);
+  border-radius: 22px;
+  background: var(--panel);
+  color: var(--text);
+  box-shadow: 0 20px 70px #0004;
+}
+.study-plan-dialog::backdrop {
+  background: #17151dcc;
+  backdrop-filter: blur(5px);
+}
+.study-plan-dialog > form {
+  padding: 26px;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 36px);
+  overflow-y: auto;
+}
+.study-plan-dialog-heading {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  justify-content: space-between;
+}
+.study-plan-dialog h2 {
+  margin-top: 7px;
+  font-size: 23px;
+  font-weight: 800;
+}
+.study-plan-description {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.8;
+  margin: 12px 0 20px;
+}
+.study-plan-choice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  cursor: pointer;
+  min-width: 0;
+}
+.study-plan-choice:has(input:checked) {
+  background: var(--green-light);
+  border-color: var(--accent-border);
+}
+.study-plan-choice:has(input:disabled) {
+  cursor: wait;
+  opacity: 0.7;
+}
+.study-plan-choice input {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  margin: 0;
+  accent-color: var(--green);
+}
+.study-plan-choice > svg {
+  flex-shrink: 0;
+  color: var(--green);
+}
+.study-plan-choice > span {
+  min-width: 0;
+}
+.study-plan-choice strong {
+  display: block;
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.study-plan-choice small {
+  display: block;
+  font-size: 11px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+  margin-top: 3px;
+}
+.study-plan-deck-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 22px 0 12px;
+  font-size: 12px;
+}
+.study-plan-deck-heading > span {
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+.study-plan-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  min-height: 0;
+  overflow-y: auto;
+  max-height: 300px;
+  padding: 3px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+.study-plan-dialog > form > :not(.study-plan-choices) {
+  flex-shrink: 0;
+}
+.study-plan-search {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  background: var(--soft);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 9px 11px;
+  margin-bottom: 12px;
+  color: var(--text-secondary);
+}
+.study-plan-search > input {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  font-size: 12px;
+  outline: none;
+}
+.study-plan-dialog-empty {
+  text-align: center;
+  padding: 22px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+.study-plan-dialog-empty p {
+  margin: 10px 0;
+}
+.study-plan-hint {
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.8;
+  margin: 15px 0;
+}
+.study-plan-dialog .knowledge-error {
+  margin-bottom: 14px;
+  font-size: 12px;
+}
+.study-plan-dialog-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  padding-top: 5px;
+}
+.study-plan-dialog-actions button {
+  justify-content: center;
+}
+@media (max-width: 600px) {
+  .study-plan-dialog > form {
+    padding: 20px;
+  }
+  .study-plan-dialog .eyebrow {
+    font-size: 8px;
+    letter-spacing: 1px;
+  }
+  .study-plan-dialog h2 {
+    font-size: 21px;
+  }
+  .study-plan-dialog-actions > button {
+    flex: 1;
+  }
+}

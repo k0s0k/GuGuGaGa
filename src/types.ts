@@ -48,6 +48,7 @@ export interface Settings {
   retention: number;
   theme: "light" | "dark";
   includeHot100: boolean;
+  studyDeckIds?: string[];
   avatar: string;
   workspaceName: string;
 }

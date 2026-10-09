@@ -29,7 +29,6 @@ import {
   LoaderCircle,
   Menu,
   Moon,
-  MoreHorizontal,
   PanelLeftClose,
   RotateCcw,
   Search,
@@ -49,6 +48,7 @@ import { knowledgeProjection } from "./knowledgeProjection";
 import AvatarSettings, { Avatar } from "./AvatarSettings";
 import PanelLayout, { revealPanel, SidebarResize } from "./PanelLayout";
 import CheckInButton from "./CheckInButton";
+import SidebarStudyPlans from "./SidebarStudyPlans";
 import {
   MakeupCheckin,
   StoneBalance,
@@ -178,6 +178,7 @@ export default function App() {
     [capabilities, setCapabilities] = useState<Capabilities | null>(null),
     [categories, setCategories] = useState<string[]>([]);
   const [view, setView] = useState<View>("today"),
+    [knowledgeDeckId, setKnowledgeDeckId] = useState<string | null>(null),
     [selected, setSelected] = useState<number | null>(null),
     [selectedKnowledge, setSelectedKnowledge] = useState<string | null>(null),
     [error, setError] = useState(""),
@@ -254,7 +255,12 @@ export default function App() {
       if (match) setSelected(Number(match[1]));
       else {
         setSelected(null);
-        const key = location.hash.slice(1);
+        const [key, query = ""] = location.hash.slice(1).split("?");
+        setKnowledgeDeckId(
+          key === "knowledge"
+            ? new URLSearchParams(query).get("deck") || null
+            : null,
+        );
         if ([...navigation.map((n) => n.id), "settings"].includes(key))
           setView(key as View);
       }
@@ -267,7 +273,19 @@ export default function App() {
     setSelected(null);
     setSelectedKnowledge(null);
     setView(next);
+    setKnowledgeDeckId(null);
     location.hash = next;
+    setSideOpen(false);
+  }, []);
+  const openDeck = useCallback((id: string | null) => {
+    revealPanel("knowledge", "decks");
+    revealPanel("knowledge", "knowledge-list");
+    setSelected(null);
+    setSelectedKnowledge(null);
+    setView("knowledge");
+    setKnowledgeDeckId(id);
+    location.hash =
+      id === null ? "knowledge" : `knowledge?deck=${encodeURIComponent(id)}`;
     setSideOpen(false);
   }, []);
   const openProblem = useCallback((id: number) => {
@@ -358,9 +376,8 @@ export default function App() {
     else openProblem(id);
   };
   const due = projection.planned.filter((p) =>
-      isDue(projection.state.cards[p.id]),
-    ),
-    count = Object.keys(state.cards).length;
+    isDue(projection.state.cards[p.id]),
+  );
   const title = selectedKnowledge
     ? "知识复习"
     : selected
@@ -424,22 +441,15 @@ export default function App() {
               </button>
             ))}
           </nav>
-          <div className="sidebar-section">
-            <div className="nav-label">
-              我的学习计划 <MoreHorizontal size={15} />
-            </div>
-            <button className="plan-link" onClick={() => navigate("path")}>
-              <Folder size={16} />
-              <span>LeetCode Hot 100</span>
-            </button>
-            <div className="sidebar-progress">
-              <span style={{ width: `${count}%` }} />
-            </div>
-            <div className="sidebar-progress-label">
-              <span>持续积累，直到掌握</span>
-              <span>{count}/100</span>
-            </div>
-          </div>
+          <SidebarStudyPlans
+            state={state}
+            problems={problems}
+            mutate={mutate}
+            notify={notify}
+            onHot100={() => navigate("path")}
+            onDeck={openDeck}
+            onKnowledge={() => navigate("knowledge")}
+          />
           <div className="little-quote">
             <Sprout size={17} />
             <p>
@@ -624,6 +634,8 @@ export default function App() {
                   mutate={mutate}
                   notify={notify}
                   onOpen={openKnowledge}
+                  selectedDeckId={knowledgeDeckId}
+                  onSelectDeck={openDeck}
                 />
               )}
               {(view === "library" || view === "favorites") && (

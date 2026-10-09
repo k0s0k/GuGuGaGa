@@ -421,6 +421,18 @@ test("disabling Hot100 recommendations leaves a knowledge-only plan and keeps th
     document: knowledgeDocument(),
   });
   await page.goto("/#today");
+  await page.getByRole("button", { name: "管理学习计划", exact: true }).click();
+  const planDialog = page.getByRole("dialog", {
+    name: "我的学习计划",
+    exact: true,
+  });
+  await planDialog
+    .getByRole("checkbox", { name: "测试知识库", exact: true })
+    .check();
+  await planDialog
+    .getByRole("button", { name: "保存学习计划", exact: true })
+    .click();
+  await expect(planDialog).not.toBeVisible();
   await expect(page.locator(".today-panel .problem-row")).toHaveCount(3);
   await expect(page.locator(".today-panel .problem-id")).toHaveCount(2);
   await page.screenshot({

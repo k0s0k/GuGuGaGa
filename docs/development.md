@@ -78,7 +78,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\setup-cpp.ps1
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-desktop.ps1
 ```
 
-构建脚本在 `.local/package-env` 准备桌面依赖，校验嵌入式 Python，输出 `release/GuGuGaGa-v2.4.1/`。`-SkipInstall` 复用打包依赖，`-SkipFrontend` 复用前端构建。发行目录包含运行环境、快捷方式脚本、知识库模板与第三方许可证。
+构建脚本在 `.local/package-env` 准备桌面依赖，校验嵌入式 Python，输出 `release/GuGuGaGa-v2.5.0/`。`-SkipInstall` 复用打包依赖，`-SkipFrontend` 复用前端构建。发行目录包含运行环境、快捷方式脚本、知识库模板与第三方许可证。
 
 ## 数据、备份与兼容
 
@@ -103,6 +103,8 @@ python -m server.app --data "D:\GuGuGaGaData\progress.db"
 Git 保存源码和构建说明；本机数据、运行环境与生成产物由 `.gitignore` 管理。
 
 ## 复习与时间规则
+
+`settings.studyDeckIds` 保存参与每日学习与复习计划的知识库 ID，与 `includeHot100` 共同决定推荐范围。新建和导入的知识库由用户从侧栏计划管理中选择加入；取消选择保留所有学习记录。旧数据库或备份缺少该字段时，以当时全部知识库恢复原有安排，显式空数组保持为空。`#knowledge?deck=<id>` 可直接打开指定知识库。
 
 调度器结合记忆稳定性与四档反馈安排间隔，估计保留率为 `R(t) = 0.9^(t/S)`。首次「有点模糊 / 记住了 / 很熟练」对应初始稳定性 0.5 / 1 / 4 天；选择「忘记了」安排 10 分钟后重学。按天间隔为 1–365 天，更高目标保留率会缩短后续间隔。
 

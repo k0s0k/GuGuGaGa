@@ -64,7 +64,7 @@ def avatar_data_url(value):
 
 DEFAULT_STATE = {
     "version": 2,
-    "settings": {"dailyGoal": 3, "newPerDay": 3, "language": "python", "mode": "leetcode", "retention": 0.9, "theme": "dark", "includeHot100": True, "avatar": "", "workspaceName": "我的工作空间"},
+    "settings": {"dailyGoal": 3, "newPerDay": 3, "language": "python", "mode": "leetcode", "retention": 0.9, "theme": "dark", "includeHot100": True, "studyDeckIds": [], "avatar": "", "workspaceName": "我的工作空间"},
     "cards": {}, "notes": {}, "favorites": [], "drafts": {}, "events": [], "checkins": [],
     "solutions": {}, "decks": {}, "knowledge": {}, "knowledgeCards": {},
     "knowledgeNotes": {}, "knowledgeFavorites": [], "knowledgeEvents": [],
@@ -89,9 +89,13 @@ class Store:
                 self._backup(state, "before-v2-upgrade")
                 db.execute("UPDATE state SET data=? WHERE id=1", (json.dumps(upgraded, ensure_ascii=False, allow_nan=False),))
                 state = upgraded
-            elif any(key not in state.get("settings", {}) for key in ("includeHot100", "avatar", "workspaceName")):
+            elif any(key not in state.get("settings", {}) for key in ("includeHot100", "studyDeckIds", "avatar", "workspaceName")):
                 # Additive v2 preference: retain all existing study data unchanged.
-                state["settings"] = self.settings(state.get("settings", {}))
+                preferences = state.get("settings", {})
+                if "studyDeckIds" not in preferences:
+                    preferences = {**preferences, "studyDeckIds": list(state.get("decks", {}))}
+                state["settings"] = self.settings(preferences)
+                self._validate_study_decks(state)
                 db.execute("UPDATE state SET data=? WHERE id=1", (json.dumps(state, ensure_ascii=False, allow_nan=False),))
             # Apply the new default once; later explicit choices and imported
             # preferences remain untouched, including on subsequent launches.
@@ -166,11 +170,20 @@ class Store:
             raise ValueError("主题无效")
         if type(result["includeHot100"]) is not bool:
             raise ValueError("Hot 100 推荐开关必须为布尔值")
+        selected_decks = result["studyDeckIds"]
+        if not isinstance(selected_decks, list) or len(selected_decks) > 500:
+            raise ValueError("学习计划知识库必须为数组，最多 500 项")
+        result["studyDeckIds"] = list(dict.fromkeys(identifier(deck_id, "学习计划知识库 ID") for deck_id in selected_decks))
         result["avatar"] = avatar_data_url(result["avatar"])
         result["workspaceName"] = workspace_name(result["workspaceName"])
         if type(result["retention"]) not in (int, float) or not math.isfinite(result["retention"]) or not 0.8 <= result["retention"] <= 0.95:
             raise ValueError("目标记忆保留率范围为 80%–95%")
         return result
+
+    @staticmethod
+    def _validate_study_decks(state):
+        if any(deck_id not in state["decks"] for deck_id in state["settings"]["studyDeckIds"]):
+            raise ValueError("学习计划包含不存在的知识库，请重新选择")
 
     def validate_import(self, value):
         if not isinstance(value, dict) or type(value.get("version")) is not int or value.get("version") not in (1, 2):
@@ -235,6 +248,10 @@ class Store:
         state["checkins"] = sorted(set(self._day(day) for day in value.get("checkins", [])))
         if value["version"] == 2:
             self._validate_knowledge_state(value, state)
+        # Missing means a pre-selection backup; explicit [] means no decks.
+        if "studyDeckIds" not in value.get("settings", {}):
+            state["settings"]["studyDeckIds"] = list(state["decks"])
+        self._validate_study_decks(state)
         if "stones" in value:
             state["stones"] = value["stones"]
         state["stones"] = calculate_stones(state, utc_now())
@@ -469,6 +486,7 @@ class Store:
                 if not isinstance(updates, dict):
                     raise ValueError("设置格式错误")
                 state["settings"] = self.settings({**state["settings"], **updates})
+                self._validate_study_decks(state)
             elif kind == "import":
                 replacement = self.validate_import(payload.get("state"))
                 self._backup(state)

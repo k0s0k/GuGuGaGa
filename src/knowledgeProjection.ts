@@ -1,5 +1,12 @@
 import type { AppState, Problem } from "./types";
 
+/** Older backups included every knowledge deck in the daily plan. */
+export function studyDeckIds(state: AppState) {
+  return (state.settings.studyDeckIds ?? Object.keys(state.decks)).filter(
+    (id) => !!state.decks[id],
+  );
+}
+
 /** A read-only view lets the existing calendar and planner show both kinds of learning.
  * Synthetic negative IDs never leave this module's UI projection or reach persistence.
  */
@@ -54,11 +61,14 @@ export function knowledgeProjection(problems: Problem[], state: AppState) {
   const activeKnowledge = knowledge.filter(
     (p) => !state.knowledge[p.knowledgeId!].archived,
   );
+  const plannedDecks = new Set(studyDeckIds(state));
   return {
     all: [...problems, ...knowledge],
     active: [...activeKnowledge, ...problems],
     planned: [
-      ...activeKnowledge,
+      ...activeKnowledge.filter((p) =>
+        plannedDecks.has(state.knowledge[p.knowledgeId!].deckId),
+      ),
       ...(state.settings.includeHot100 === false ? [] : problems),
     ],
     state: combined,

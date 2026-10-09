@@ -33,6 +33,7 @@ import { dayKey, download, dueLabel, isDue, ratingLabels } from "./utils";
 import Markdown from "./Markdown";
 import PanelLayout from "./PanelLayout";
 import { knowledgeSamples } from "./knowledgeSamples";
+import { studyDeckIds } from "./knowledgeProjection";
 import {
   confirmedStudy,
   RatingSymbol,
@@ -873,20 +874,37 @@ export default function Knowledge({
   mutate,
   notify,
   onOpen,
-}: Shared & { onOpen: (id: string) => void }) {
-  const [deckId, setDeckId] = useState("all"),
-    [search, setSearch] = useState(""),
+  selectedDeckId,
+  onSelectDeck,
+}: Shared & {
+  onOpen: (id: string) => void;
+  selectedDeckId: string | null;
+  onSelectDeck: (id: string | null) => void;
+}) {
+  const deckId =
+    selectedDeckId !== null && state.decks[selectedDeckId]
+      ? selectedDeckId
+      : null;
+  const [search, setSearch] = useState(""),
     [filter, setFilter] = useState("all");
+  useEffect(() => {
+    setSearch("");
+    setFilter("all");
+  }, [selectedDeckId]);
   const [modal, setModal] = useState<"deck" | "item" | "import" | null>(null),
     [editingDeck, setEditingDeck] = useState<KnowledgeDeck>();
   const [sample, setSample] = useState<KnowledgeDocument>();
   const decks = Object.values(state.decks || {}),
     items = Object.values(state.knowledge || {});
   const active = items.filter((item) => !item.archived),
-    due = active.filter((item) => isDue(state.knowledgeCards[item.id]));
+    due = active.filter(
+      (item) =>
+        (deckId === null || item.deckId === deckId) &&
+        isDue(state.knowledgeCards[item.id]),
+    );
   const filtered = items.filter(
     (item) =>
-      (deckId === "all" || item.deckId === deckId) &&
+      (deckId === null || item.deckId === deckId) &&
       (filter === "archived" ? item.archived : !item.archived) &&
       (filter !== "due" || isDue(state.knowledgeCards[item.id])) &&
       (filter !== "new" || !state.knowledgeCards[item.id]) &&
@@ -932,7 +950,7 @@ export default function Knowledge({
             LEARN ANYTHING. REMEMBER WHAT MATTERS.
           </span>
           <h1>你的知识，值得被记住。</h1>
-          <p>C++、英语、Blender、UE5… 把笔记变成问题，把回忆变成习惯。</p>
+          <p>把笔记变成问题，把回忆变成习惯。</p>
         </div>
         <div className="knowledge-heading-actions">
           <button className="secondary" onClick={() => setModal("import")}>
@@ -1008,8 +1026,8 @@ export default function Knowledge({
           data-panel-label="知识库分类"
         >
           <button
-            className={`knowledge-deck all ${deckId === "all" ? "selected" : ""}`}
-            onClick={() => setDeckId("all")}
+            className={`knowledge-deck all ${deckId === null ? "selected" : ""}`}
+            onClick={() => onSelectDeck(null)}
           >
             <Layers size={22} />
             <strong>全部知识库</strong>
@@ -1025,7 +1043,7 @@ export default function Knowledge({
               >
                 <button
                   className="knowledge-deck-main"
-                  onClick={() => setDeckId(deck.id)}
+                  onClick={() => onSelectDeck(deck.id)}
                 >
                   <BookOpen size={20} />
                   <strong>{deck.title}</strong>
@@ -1177,7 +1195,7 @@ export default function Knowledge({
           state={state}
           mutate={mutate}
           notify={notify}
-          deckId={deckId === "all" ? undefined : deckId}
+          deckId={deckId ?? undefined}
           close={close}
         />
       )}
@@ -1315,10 +1333,14 @@ export function KnowledgeStudy({
         </button>
       </div>
     );
+  const plannedDecks = new Set(studyDeckIds(state));
   const next = Object.values(state.knowledge)
     .filter(
       (i) =>
         i.id !== id &&
+        (plannedDecks.has(item.deckId)
+          ? plannedDecks.has(i.deckId)
+          : i.deckId === item.deckId) &&
         !i.archived &&
         (isDue(state.knowledgeCards[i.id]) || !state.knowledgeCards[i.id]),
     )

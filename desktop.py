@@ -37,7 +37,7 @@ APP_NAME = "GuGuGaGa"
 # Keep the v2 activation protocol and data directory compatible with CodeRecall.
 APP_ID = "CodeRecall.Desktop.2"
 WINDOWS_APP_ID = "GuGuGaGa.Desktop"
-VERSION = "2.4.1"
+VERSION = "2.5.0"
 LOGGER = logging.getLogger("coderecall.desktop")
 
 
@@ -191,10 +191,11 @@ def native_window(service: DesktopService, directory: Path, smoke_report: Path |
                         hasJourneyIcon=bool(window.evaluate_js("Boolean(document.querySelector('svg.journey-icon[data-journey-icon=\"banner\"]'))")),
                         hasStoneWallet=bool(window.evaluate_js("Boolean(document.querySelector('[data-stone-wallet]'))")),
                         hasCoachAppIcon=bool(window.evaluate_js("Boolean(document.querySelector('.coach-scene img[src=\"/gugugaga-icon.png\"]')?.naturalWidth > 0)")),
+                        hasStudyPlanManager=bool(window.evaluate_js("Boolean(document.querySelector('button[aria-label=\"管理学习计划\"]'))")),
                     )
                     if (outcome["theme"] == "dark" and outcome["hasManualCheckin"]
                             and outcome["hasPanelLayout"] and outcome["hasJourneyIcon"]
-                            and outcome["hasStoneWallet"] and outcome["hasCoachAppIcon"]):
+                            and outcome["hasStoneWallet"] and outcome["hasCoachAppIcon"] and outcome["hasStudyPlanManager"]):
                         outcome["passed"] = True
                         break
             except Exception:
@@ -303,6 +304,10 @@ def self_test(report_path: Path):
                 assert state["knowledgeCards"][item_id]["reviews"] == 1
                 assert service.store.validate_import(state)["knowledge"] == state["knowledge"]
                 report["checks"].append("knowledge_import_review_backup")
+                selected_deck_id = state["knowledge"][item_id]["deckId"]
+                state = service.store.action({"type": "settings", "settings": {"studyDeckIds": [selected_deck_id]}})
+                assert Store(service.store.path, BY_ID).read()["settings"]["studyDeckIds"] == [selected_deck_id]
+                assert service.store.validate_import(state)["settings"]["studyDeckIds"] == [selected_deck_id]
                 avatar = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC"
                 state = service.store.action({"type": "settings", "settings": {"avatar": avatar}})
                 assert service.store.read()["settings"]["avatar"] == avatar
@@ -322,8 +327,10 @@ def self_test(report_path: Path):
                 assert independent_checkin["events"] == [] and independent_checkin["knowledgeEvents"] == []
                 restored.action({"type": "import", "state": state})
                 assert restored.read()["settings"]["workspaceName"] == workspace_name
+                assert restored.read()["settings"]["studyDeckIds"] == [selected_deck_id]
                 assert restored.read()["checkins"] == state["checkins"]
                 report["checks"].append("workspace_name_persistence_and_backup")
+                report["checks"].append("study_plan_selection_persistence_and_backup")
                 report["checks"].append("manual_checkin_persistence_and_backup")
                 restored.action({"type": "settings", "settings": {"theme": "light"}})
                 assert Store(restored.path, BY_ID).read()["settings"]["theme"] == "light"
