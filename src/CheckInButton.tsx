@@ -2,6 +2,8 @@ import { useEffect, useId, useRef, useState } from "react";
 import { CalendarCheck, Check, LoaderCircle } from "lucide-react";
 import type { AppState } from "./types";
 import { dayKey } from "./utils";
+import StoneIcon from "./StoneIcon";
+import { stoneGain, stoneWallet } from "./StoneWallet";
 
 interface CheckInButtonProps {
   state: AppState;
@@ -42,7 +44,12 @@ export default function CheckInButton({
       // Either date can be valid if midnight passes while the request is in flight.
       if (!next.checkins.includes(today) && !next.checkins.includes(dayKey()))
         throw new Error("签到尚未确认，请重试。");
-      notify("签到成功，今天也留下了坚持的足迹。");
+      const gained = stoneGain(state, next);
+      notify(
+        gained
+          ? `签到成功，获得 ${gained} 颗小石头。`
+          : "签到成功，今天也留下了坚持的足迹。",
+      );
       if (mounted.current) onSuccess?.(next);
     } catch (reason) {
       const message =
@@ -72,6 +79,11 @@ export default function CheckInButton({
           <CalendarCheck size={18} aria-hidden="true" />
         )}
         {busy ? "签到中…" : signed ? "今日已签到" : "签到"}
+        {!signed && !busy && (
+          <span className="checkin-stone-reward" aria-hidden="true">
+            <StoneIcon size={16} />+{stoneWallet(state).rules.checkin}
+          </span>
+        )}
       </button>
       {error && (
         <p id={errorId} className="knowledge-error checkin-error" role="alert">

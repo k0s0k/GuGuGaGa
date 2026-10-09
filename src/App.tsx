@@ -49,6 +49,12 @@ import { knowledgeProjection } from "./knowledgeProjection";
 import AvatarSettings, { Avatar } from "./AvatarSettings";
 import PanelLayout, { revealPanel, SidebarResize } from "./PanelLayout";
 import CheckInButton from "./CheckInButton";
+import {
+  MakeupCheckin,
+  StoneBalance,
+  StoneCollection,
+  stoneWallet,
+} from "./StoneWallet";
 import type { AppState, Capabilities, Problem, View } from "./types";
 import {
   dateShift,
@@ -523,6 +529,13 @@ export default function App() {
             <strong>{title}</strong>
           </div>
           <div className="topbar-right">
+            <StoneBalance
+              state={state}
+              onClick={() => {
+                revealPanel("calendar", "stones");
+                navigate("calendar");
+              }}
+            />
             <button
               className="topbar-streak"
               title="查看连续打卡"
@@ -1205,6 +1218,9 @@ function Calendar({
       () => new Date(new Date().getFullYear(), new Date().getMonth(), 1),
     ),
     [selected, setSelected] = useState(dayKey());
+  const makeupDays = new Set(
+    stoneWallet(state).makeups.map((entry) => entry.day),
+  );
   const offset = (month.getDay() + 6) % 7,
     days = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate(),
     cells = Math.ceil((offset + days) / 7) * 7;
@@ -1243,6 +1259,7 @@ function Calendar({
           }}
         />
       </div>
+      <StoneCollection state={state} />
       <div className="calendar-layout">
         <section
           className="panel calendar-panel"
@@ -1315,9 +1332,9 @@ function Calendar({
               return (
                 <button
                   key={key}
-                  aria-label={`${key}，学习 ${count} 项，${check ? "已签到" : "未签到"}`}
+                  aria-label={`${key}，学习 ${count} 项，${makeupDays.has(key) ? "已补签" : check ? "已签到" : "未签到"}`}
                   onClick={() => setSelected(key)}
-                  className={`calendar-cell ${outside ? "outside" : ""} ${selected === key ? "selected" : ""} ${key === dayKey() ? "today" : ""} ${count || check ? "has-activity" : ""}`}
+                  className={`calendar-cell ${outside ? "outside" : ""} ${selected === key ? "selected" : ""} ${key === dayKey() ? "today" : ""} ${count || check ? "has-activity" : ""} ${makeupDays.has(key) ? "is-makeup" : ""}`}
                 >
                   <span className="calendar-day">
                     {date.getDate()}
@@ -1325,10 +1342,19 @@ function Calendar({
                   </span>
                   {count > 0 ? (
                     <span className="calendar-activity">
-                      {count} 项<small>{check ? "已签到" : "学习中"}</small>
+                      {count} 项
+                      <small>
+                        {makeupDays.has(key)
+                          ? "已补签"
+                          : check
+                            ? "已签到"
+                            : "学习中"}
+                      </small>
                     </span>
                   ) : check ? (
-                    <span className="calendar-today-label">已签到</span>
+                    <span className="calendar-today-label">
+                      {makeupDays.has(key) ? "已补签" : "已签到"}
+                    </span>
                   ) : key === dayKey() ? (
                     <span className="calendar-today-label">今天</span>
                   ) : null}
@@ -1360,13 +1386,22 @@ function Calendar({
                 {Number(selected.slice(5, 7))} 月 {Number(selected.slice(8))} 日
               </h2>
               <p>
-                {state.checkins.includes(selected)
-                  ? "这一天已签到"
-                  : "记录属于这一天的积累"}
+                {makeupDays.has(selected)
+                  ? "这一天已补签"
+                  : state.checkins.includes(selected)
+                    ? "这一天已签到"
+                    : "记录属于这一天的积累"}
               </p>
             </div>
             <CalendarDays size={20} className="muted" />
           </div>
+          <MakeupCheckin
+            key={selected}
+            state={state}
+            day={selected}
+            mutate={mutate}
+            notify={notify}
+          />
           {selectedEvents.length ? (
             <>
               <div className="day-stats">

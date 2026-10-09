@@ -44,7 +44,18 @@
   box-shadow: 0 10px 30px #0003;
   width: min(480px, calc(100vw - 42px));
   max-height: 65vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.panel-layout-menu > :not(.panel-layout-options) {
+  flex-shrink: 0;
+}
+.panel-layout-options {
+  min-height: 0;
   overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
 }
 .panel-layout-menu > strong {
   font-size: 14px;
@@ -86,6 +97,7 @@
 }
 .panel-layout-menu > button {
   margin-top: 12px;
+  align-self: flex-start;
 }
 .panel-hidden-notice {
   color: var(--text-secondary);

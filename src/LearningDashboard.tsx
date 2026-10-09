@@ -16,6 +16,7 @@ import type { AppState, Problem, View } from "./types";
 import { dailyPlan, dateShift, dayKey, isDue, streak } from "./utils";
 import CheckInButton from "./CheckInButton";
 import JourneyIcon from "./JourneyIcon";
+import { StoneCollection } from "./StoneWallet";
 import "./learning-dashboard.css";
 import "./journey-icons.css";
 
@@ -249,7 +250,10 @@ export default function LearningDashboard({
             </div>
             <div className="coach-scene" aria-hidden="true">
               <span className="coach-spark spark-one">✦</span>
-              <img src="/gugugaga-icon.png" alt="" />
+              <JourneyIcon
+                kind={achieved ? "complete" : "banner"}
+                current={!achieved}
+              />
               <span className="coach-spark spark-two">✧</span>
               <span className="coach-bubble">
                 {achieved ? "好耶，目标达成！" : "咕嘎陪你一起！"}
@@ -280,6 +284,12 @@ export default function LearningDashboard({
             </p>
             <CheckInButton state={state} mutate={mutate} notify={notify} />
           </section>
+
+          <StoneCollection
+            state={state}
+            compact
+            onCalendar={() => navigate("calendar")}
+          />
 
           <section
             className="streak-card"

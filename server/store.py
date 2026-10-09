@@ -13,6 +13,7 @@ import unicodedata
 from uuid import uuid4
 from .scheduler import RATINGS, schedule, utc_now, parse_time
 from .knowledge import deck_fields, item_fields, identifier, import_into, text
+from .stones import calculate_stones, make_up_checkin
 
 MAX_STATE_BYTES = 64 * 1024 * 1024
 MAX_AVATAR_BYTES = 256 * 1024
@@ -100,6 +101,10 @@ class Store:
                 state["settings"]["theme"] = "dark"
                 db.execute("UPDATE state SET data=? WHERE id=1", (json.dumps(state, ensure_ascii=False, allow_nan=False),))
                 db.execute("INSERT INTO app_migrations (name) VALUES (?)", (migration,))
+            wallet = calculate_stones(state, utc_now())
+            if state.get("stones") != wallet:
+                state["stones"] = wallet
+                db.execute("UPDATE state SET data=? WHERE id=1", (json.dumps(state, ensure_ascii=False, allow_nan=False),))
 
     @contextmanager
     def connect(self):
@@ -230,6 +235,9 @@ class Store:
         state["checkins"] = sorted(set(self._day(day) for day in value.get("checkins", [])))
         if value["version"] == 2:
             self._validate_knowledge_state(value, state)
+        if "stones" in value:
+            state["stones"] = value["stones"]
+        state["stones"] = calculate_stones(state, utc_now())
         return state
 
     def _solution_key(self, key):
@@ -430,6 +438,8 @@ class Store:
                 if day not in state["checkins"]:
                     state["checkins"].append(day)
                     state["checkins"].sort()
+            elif kind == "checkin-makeup":
+                make_up_checkin(state, payload, utc_now())
             elif kind == "favorite":
                 number = int(pid)
                 if number in state["favorites"]:
@@ -465,6 +475,7 @@ class Store:
                 state = replacement
             else:
                 raise ValueError("不支持的操作")
+            state["stones"] = calculate_stones(state, utc_now())
             serialized = json.dumps(state, ensure_ascii=False, allow_nan=False)
             if len(serialized.encode("utf-8")) > MAX_STATE_BYTES:
                 raise ValueError("学习资料已达 64 MB 上限，请精简较长的笔记或题解后再保存")

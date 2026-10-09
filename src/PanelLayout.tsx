@@ -175,60 +175,62 @@ export default function PanelLayout({
           <div className="panel-layout-menu">
             <strong>显示与大小</strong>
             <p>拖动面板右下角调整大小，或填写尺寸。留空恢复自动大小。</p>
-            {panels.map((panel) => (
-              <div className="panel-layout-option" key={panel.id}>
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={!layout[panel.id]?.hidden}
-                    onChange={(event) =>
-                      update(panel.id, { hidden: !event.target.checked })
-                    }
-                  />
-                  {panel.label}
-                </label>
-                <label>
-                  宽
-                  <input
-                    type="number"
-                    min={180}
-                    max={2400}
-                    step={20}
-                    placeholder="自动"
-                    aria-label={`${panel.label}宽度`}
-                    key={`width-${layout[panel.id]?.width}`}
-                    defaultValue={layout[panel.id]?.width || ""}
-                    onBlur={(event) =>
-                      commitSize(panel.id, "width", event.currentTarget)
-                    }
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter") event.currentTarget.blur();
-                    }}
-                  />
-                  <small>px</small>
-                </label>
-                <label>
-                  高
-                  <input
-                    type="number"
-                    min={120}
-                    max={2000}
-                    step={20}
-                    placeholder="自动"
-                    aria-label={`${panel.label}高度`}
-                    key={`height-${layout[panel.id]?.height}`}
-                    defaultValue={layout[panel.id]?.height || ""}
-                    onBlur={(event) =>
-                      commitSize(panel.id, "height", event.currentTarget)
-                    }
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter") event.currentTarget.blur();
-                    }}
-                  />
-                  <small>px</small>
-                </label>
-              </div>
-            ))}
+            <div className="panel-layout-options">
+              {panels.map((panel) => (
+                <div className="panel-layout-option" key={panel.id}>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={!layout[panel.id]?.hidden}
+                      onChange={(event) =>
+                        update(panel.id, { hidden: !event.target.checked })
+                      }
+                    />
+                    {panel.label}
+                  </label>
+                  <label>
+                    宽
+                    <input
+                      type="number"
+                      min={180}
+                      max={2400}
+                      step={20}
+                      placeholder="自动"
+                      aria-label={`${panel.label}宽度`}
+                      key={`width-${layout[panel.id]?.width}`}
+                      defaultValue={layout[panel.id]?.width || ""}
+                      onBlur={(event) =>
+                        commitSize(panel.id, "width", event.currentTarget)
+                      }
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") event.currentTarget.blur();
+                      }}
+                    />
+                    <small>px</small>
+                  </label>
+                  <label>
+                    高
+                    <input
+                      type="number"
+                      min={120}
+                      max={2000}
+                      step={20}
+                      placeholder="自动"
+                      aria-label={`${panel.label}高度`}
+                      key={`height-${layout[panel.id]?.height}`}
+                      defaultValue={layout[panel.id]?.height || ""}
+                      onBlur={(event) =>
+                        commitSize(panel.id, "height", event.currentTarget)
+                      }
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") event.currentTarget.blur();
+                      }}
+                    />
+                    <small>px</small>
+                  </label>
+                </div>
+              ))}
+            </div>
             <button className="secondary small" onClick={() => setLayout({})}>
               <RotateCcw size={14} />
               恢复本页布局

@@ -13,6 +13,7 @@ from unittest.mock import patch
 
 from server.scheduler import parse_time
 from server.store import DEFAULT_STATE, Store
+from server.stones import calculate_stones
 
 
 class StoreTests(unittest.TestCase):
@@ -85,6 +86,7 @@ class StoreTests(unittest.TestCase):
         first = self.store.action({"type": "checkin"})
         expected = copy.deepcopy(before)
         expected["checkins"] = [self.day]
+        expected["stones"] = calculate_stones(expected, self.now)
         self.assertEqual(first, expected)
         self.assertEqual(self.store.action({"type": "checkin"}), expected)
         self.assertEqual(Store(self.path, range(1, 101)).read(), expected)
@@ -140,6 +142,7 @@ class StoreTests(unittest.TestCase):
         upgraded = Store(self.path, range(1, 101))
         expected = copy.deepcopy(original)
         expected["settings"]["theme"] = "dark"
+        expected["stones"] = calculate_stones(expected, self.now)
         self.assertEqual(upgraded.read(), expected)
         selected = upgraded.action({"type": "settings", "settings": {"theme": "light"}})
         self.assertEqual(Store(self.path, range(1, 101)).read(), selected)
@@ -188,7 +191,7 @@ class StoreTests(unittest.TestCase):
         incoming = copy.deepcopy(DEFAULT_STATE)
         incoming["notes"]["2"] = "备份中的笔记"
         result = self.store.action({"type": "import", "state": incoming})
-        self.assertEqual(result, incoming)
+        self.assertEqual(result, self.store.validate_import(incoming))
         backups = list(self.path.parent.glob("before-import-*.json"))
         self.assertEqual(len(backups), 1)
         self.assertEqual(json.loads(backups[0].read_text(encoding="utf-8")), original)

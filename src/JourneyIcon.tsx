@@ -62,47 +62,47 @@ export default function JourneyIcon({
           strokeWidth="4"
         />
 
-        <g className="journey-penguin" transform="rotate(-6 49 54)">
+        <g className="journey-stone" transform="rotate(-6 49 54)">
           <path
-            d="M30 47Q16 46 16 63q8 1 16-7m34-9q15-3 17 11-9 5-17-1"
-            fill={ink}
+            d="M22 49q1-10 9-16l12-9q7-5 15 0l12 7q6 4 9 14l5 18q2 8-6 13-10 7-27 6l-20-3q-10-2-11-11Z"
+            fill="#b8b3ce"
             stroke={ink}
-            strokeWidth="3"
+            strokeWidth="3.5"
           />
           <path
-            d="m33 75-9 7q8 7 20 1l-1-8m16 0 13 6q-6 8-18 3l-2-9"
-            fill={yellow}
-            stroke={ink}
-            strokeWidth="3"
+            d="m31 34 15-9q5-3 11 1l-7 16-23 8-4 15 1-15q0-10 7-16Z"
+            fill="#eee9ed"
           />
+          <path d="m58 26 13 8q5 4 7 12l5 18-18-9-15-13Z" fill="#9c96b8" />
           <path
-            d="M26 48c-1-18 9-28 24-28s26 12 25 29l3 15c2 14-11 18-28 18S22 77 23 64Z"
-            fill={ink}
-            stroke={ink}
-            strokeWidth="3"
+            d="m22 65 17 6 25-3 18-4q2 7-5 12-10 7-26 6l-20-3q-8-2-9-8Z"
+            fill="#8c85a6"
           />
+          <path d="m27 50 23-8 15 13-2 13-24 3-17-6Z" fill="#c9c4dc" />
           <path
-            d="M30 49c-1-12 6-18 13-12l7 7 7-7c8-6 15 0 14 12l4 17c1 8-11 12-25 12S25 74 26 66Z"
-            fill={cream}
+            d="m35 35 10-6m20 7 4 5m-40 30 7 2"
+            fill="none"
+            stroke={cream}
+            strokeWidth="2.5"
           />
-          {headphones ? (
+          {headphones && (
             <>
               <path
-                d="M24 44c-1-18 10-27 26-27S78 29 76 45"
+                d="M24 45c-1-18 10-27 26-27S78 29 76 46"
                 fill="none"
                 stroke={cream}
                 strokeWidth="8"
               />
               <path
-                d="M24 44c-1-18 10-27 26-27S78 29 76 45"
+                d="M24 45c-1-18 10-27 26-27S78 29 76 46"
                 fill="none"
                 stroke={ink}
                 strokeWidth="4"
               />
               <rect
-                x="20"
-                y="39"
-                width="10"
+                x="19"
+                y="42"
+                width="11"
                 height="18"
                 rx="4"
                 fill={pink}
@@ -110,58 +110,40 @@ export default function JourneyIcon({
                 strokeWidth="3"
               />
               <rect
-                x="70"
-                y="39"
-                width="10"
+                x="72"
+                y="42"
+                width="11"
                 height="18"
                 rx="4"
                 fill={pink}
                 stroke={ink}
                 strokeWidth="3"
               />
-              <path d="M24 44v7m51-7v7" stroke={cream} strokeWidth="2" />
+              <path d="M24 47v7m53-7v7" stroke={cream} strokeWidth="2" />
             </>
-          ) : (
-            <path
-              d="m42 24 7-7 6 5 6-3"
-              fill="none"
-              stroke={ink}
-              strokeWidth="3.5"
-            />
           )}
-          <path
-            d="M35 33q8-10 20-5l10 8-8-2 2 8-8-6-4 6-4-7-8 4 3-6Z"
-            fill={lavender}
-            stroke={ink}
-            strokeWidth="2"
-          />
           {current || kind === "complete" ? (
             <g fill="none" stroke={ink} strokeWidth="3.2">
               <path d="m35 49 7 2-6 3m29-5-7 2 6 3" />
             </g>
           ) : (
             <g fill={ink}>
-              <ellipse cx="39" cy="51" rx="2.6" ry="3" />
-              <ellipse cx="61" cy="51" rx="2.6" ry="3" />
+              <ellipse cx="39" cy="52" rx="2.6" ry="3" />
+              <ellipse cx="61" cy="52" rx="2.6" ry="3" />
               <path
-                d="m35 48 8 1m14 0 8-1"
+                d="m35 49 8 1m14 0 8-1"
                 fill="none"
                 stroke={ink}
                 strokeWidth="2.5"
               />
             </g>
           )}
+          <path d="M46 59q4 4 8 0" fill="none" stroke={ink} strokeWidth="2.4" />
           <path
-            d="m44 56 6-4 7 4-7 5Z"
-            fill={yellow}
-            stroke={ink}
-            strokeWidth="2"
-          />
-          <path
-            d="m31 57 6 1m26 0 6-1"
+            d="m31 58 5 1m28 0 5-1"
             fill="none"
             stroke={pink}
-            strokeWidth="4"
+            strokeWidth="3"
           />
         </g>
 

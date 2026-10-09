@@ -67,6 +67,21 @@ export interface AppState {
   knowledgeNotes: Record<string, string>;
   knowledgeFavorites: string[];
   knowledgeEvents: KnowledgeEvent[];
+  stones?: StoneWalletState;
+}
+export interface StoneWalletState {
+  balance: number;
+  totalEarned: number;
+  totalSpent: number;
+  rules: {
+    learn: number;
+    review: number;
+    checkin: number;
+    makeup: number;
+    makeupWindowDays: number;
+  };
+  startedOn: string;
+  makeups: { day: string; spentAt: string; cost: number }[];
 }
 export interface SavedSolution {
   brief: string;

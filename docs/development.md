@@ -78,7 +78,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\setup-cpp.ps1
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-desktop.ps1
 ```
 
-构建脚本在 `.local/package-env` 准备桌面依赖，校验嵌入式 Python，输出 `release/GuGuGaGa-v2.3.1/`。`-SkipInstall` 复用打包依赖，`-SkipFrontend` 复用前端构建。发行目录包含运行环境、快捷方式脚本、知识库模板与第三方许可证。
+构建脚本在 `.local/package-env` 准备桌面依赖，校验嵌入式 Python，输出 `release/GuGuGaGa-v2.4.0/`。`-SkipInstall` 复用打包依赖，`-SkipFrontend` 复用前端构建。发行目录包含运行环境、快捷方式脚本、知识库模板与第三方许可证。
 
 ## 数据、备份与兼容
 
@@ -109,6 +109,10 @@ Git 保存源码和构建说明；本机数据、运行环境与生成产物由 
 到期时间按带时区的 ISO 时间存储并以 UTC 计算；日历和打卡按后端所在电脑的本地日期记录。同一内容当天计入一个每日学习目标名额，每次反馈分别更新复习进度，事件 ID 用于去重。
 
 学习目标与打卡分别记录。用户点击「签到」后，通过 `{ "type": "checkin" }` 记录今天，同一天重复提交只保存一次。打卡可以独立于学习完成情况进行，评分和调整每日目标仅更新相应学习数据。后端确定打卡日期，接口拒绝传入 `day` 字段；完整备份保留合法的独立打卡记录。
+
+小石头余额由学习事件、签到与补签支出计算：新学 +10、复习 +5、签到 +2。同一内容同一日期以最早学习事件奖励一次，算法题与知识卡分别识别。`state.stones` 提供可用余额、累计收集、累计支出、起始日期、奖励规则和补签记录；旧备份缺少该字段时从历史自动生成。
+
+`{ "type": "checkin-makeup", "day": "YYYY-MM-DD" }` 补签最近 30 天内、开始使用以来的过去日期，固定消耗 20。校验余额、扣费和签到在同一 SQLite 事务完成，重复提交同一日期不再次扣费。补签保留原学习历史，计入连续打卡，但不获得签到奖励。完整备份包含补签记录，恢复时重新计算余额。
 
 ## 项目结构
 

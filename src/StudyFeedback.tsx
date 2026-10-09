@@ -9,6 +9,8 @@ import {
 } from "lucide-react";
 import type { AppState, Rating } from "./types";
 import { dayKey, ratingLabels } from "./utils";
+import StoneIcon from "./StoneIcon";
+import { stoneGain } from "./StoneWallet";
 import "./study-feedback.css";
 
 /** One item counts once per day, even when it needs another review. */
@@ -69,6 +71,7 @@ export interface ConfirmedStudy {
   due: string;
   goalReached: boolean;
   completed: number;
+  stonesEarned?: number;
 }
 
 export function confirmedStudy(
@@ -84,6 +87,7 @@ export function confirmedStudy(
     rating,
     due,
     completed: current.completed,
+    stonesEarned: stoneGain(before, after),
     goalReached:
       previous.completed < current.goal && current.completed >= current.goal,
   };
@@ -122,6 +126,16 @@ export function StudyFeedback({ feedback }: { feedback: ConfirmedStudy }) {
             ? `今天已学习 ${feedback.completed} 项，每一步都算数。`
             : `${ratingLabels[feedback.rating]} · ${feedback.due}`}
         </span>
+        {feedback.stonesEarned !== undefined && (
+          <div
+            className={`stone-reward ${feedback.stonesEarned ? "" : "is-collected"}`}
+          >
+            <StoneIcon size={19} />
+            {feedback.stonesEarned
+              ? `+${feedback.stonesEarned} 小石头`
+              : "今日小石头已收集"}
+          </div>
+        )}
       </div>
       {feedback.goalReached && (
         <Sparkles className="study-celebration" size={24} aria-hidden="true" />

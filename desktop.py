@@ -8,7 +8,7 @@ from __future__ import annotations
 import argparse
 import ctypes
 from ctypes import wintypes
-from datetime import datetime
+from datetime import datetime, timedelta
 import hashlib
 import http.client
 import json
@@ -37,7 +37,7 @@ APP_NAME = "GuGuGaGa"
 # Keep the v2 activation protocol and data directory compatible with CodeRecall.
 APP_ID = "CodeRecall.Desktop.2"
 WINDOWS_APP_ID = "GuGuGaGa.Desktop"
-VERSION = "2.3.1"
+VERSION = "2.4.0"
 LOGGER = logging.getLogger("coderecall.desktop")
 
 
@@ -189,9 +189,10 @@ def native_window(service: DesktopService, directory: Path, smoke_report: Path |
                         theme=window.evaluate_js("document.documentElement.dataset.theme"),
                         hasManualCheckin="签到" in text, hasPanelLayout="面板布局" in text,
                         hasJourneyIcon=bool(window.evaluate_js("Boolean(document.querySelector('svg.journey-icon[data-journey-icon=\"banner\"]'))")),
+                        hasStoneWallet=bool(window.evaluate_js("Boolean(document.querySelector('[data-stone-wallet]'))")),
                     )
                     if (outcome["theme"] == "dark" and outcome["hasManualCheckin"]
-                            and outcome["hasPanelLayout"] and outcome["hasJourneyIcon"]):
+                            and outcome["hasPanelLayout"] and outcome["hasJourneyIcon"] and outcome["hasStoneWallet"]):
                         outcome["passed"] = True
                         break
             except Exception:
@@ -325,6 +326,27 @@ def self_test(report_path: Path):
                 restored.action({"type": "settings", "settings": {"theme": "light"}})
                 assert Store(restored.path, BY_ID).read()["settings"]["theme"] == "light"
                 report["checks"].append("theme_preference_persistence")
+                assert state["stones"]["balance"] == 22, "Two new items and today's check-in should award stones"
+                legacy = json.loads(json.dumps(state))
+                legacy.pop("stones")
+                old_learning_time = datetime.now().astimezone() - timedelta(days=2)
+                legacy["events"][0].update(day=old_learning_time.date().isoformat(), time=old_learning_time.isoformat())
+                wallet = Store(Path(tmp) / "stones.db", BY_ID)
+                wallet_state = wallet.action({"type": "import", "state": legacy})
+                assert wallet_state["stones"]["balance"] == 22
+                wallet_state = wallet.action({"type": "rate", "problemId": 1, "rating": "good", "eventId": "desktop-stones-review", "seconds": 1})
+                assert wallet_state["stones"]["balance"] == 27
+                wallet_state = wallet.action({"type": "rate", "problemId": 1, "rating": "good", "eventId": "desktop-stones-review-again", "seconds": 1})
+                assert wallet_state["stones"]["balance"] == 27, "Repeated review on one day must not award extra stones"
+                missed_day = (datetime.now().date() - timedelta(days=1)).isoformat()
+                wallet_state = wallet.action({"type": "checkin-makeup", "day": missed_day})
+                assert wallet_state["stones"]["balance"] == 7 and wallet_state["stones"]["totalEarned"] == 27
+                assert wallet_state["stones"]["totalSpent"] == 20 and missed_day in wallet_state["checkins"]
+                assert wallet.action({"type": "checkin-makeup", "day": missed_day})["stones"] == wallet_state["stones"]
+                assert Store(wallet.path, BY_ID).read()["stones"] == wallet_state["stones"]
+                restored.action({"type": "import", "state": wallet_state})
+                assert Store(restored.path, BY_ID).read()["stones"] == wallet_state["stones"]
+                report["checks"].append("stones_rewards_makeup_and_backup")
                 report["passed"] = True
             finally:
                 service.stop()
