@@ -37,7 +37,7 @@ APP_NAME = "GuGuGaGa"
 # Keep the v2 activation protocol and data directory compatible with CodeRecall.
 APP_ID = "CodeRecall.Desktop.2"
 WINDOWS_APP_ID = "GuGuGaGa.Desktop"
-VERSION = "2.3.0"
+VERSION = "2.3.1"
 LOGGER = logging.getLogger("coderecall.desktop")
 
 
@@ -188,8 +188,10 @@ def native_window(service: DesktopService, directory: Path, smoke_report: Path |
                         title=window.evaluate_js("document.title"), hasDashboard=True,
                         theme=window.evaluate_js("document.documentElement.dataset.theme"),
                         hasManualCheckin="签到" in text, hasPanelLayout="面板布局" in text,
+                        hasJourneyIcon=bool(window.evaluate_js("Boolean(document.querySelector('svg.journey-icon[data-journey-icon=\"banner\"]'))")),
                     )
-                    if outcome["theme"] == "dark" and outcome["hasManualCheckin"] and outcome["hasPanelLayout"]:
+                    if (outcome["theme"] == "dark" and outcome["hasManualCheckin"]
+                            and outcome["hasPanelLayout"] and outcome["hasJourneyIcon"]):
                         outcome["passed"] = True
                         break
             except Exception:

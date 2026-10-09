@@ -5,21 +5,19 @@ import {
   BookOpen,
   Check,
   ChevronDown,
-  Code2,
   Flame,
-  Flag,
   Play,
   RotateCcw,
   Settings2,
   Sparkles,
-  Star,
   Target,
-  Trophy,
 } from "lucide-react";
 import type { AppState, Problem, View } from "./types";
 import { dailyPlan, dateShift, dayKey, isDue, streak } from "./utils";
 import CheckInButton from "./CheckInButton";
+import JourneyIcon from "./JourneyIcon";
 import "./learning-dashboard.css";
+import "./journey-icons.css";
 
 export default function LearningDashboard({
   problems,
@@ -92,7 +90,7 @@ export default function LearningDashboard({
         >
           <div className="journey-banner">
             <div className="journey-banner-icon">
-              <Flag size={29} strokeWidth={2.5} />
+              <JourneyIcon kind="banner" />
             </div>
             <div>
               <span>每日旅程</span>
@@ -139,11 +137,6 @@ export default function LearningDashboard({
             {visible.map((problem, index) => {
               const reviewing = !!state.cards[problem.id];
               const first = index === 0;
-              const Icon = reviewing
-                ? RotateCcw
-                : problem.knowledgeId
-                  ? BookOpen
-                  : Code2;
               return (
                 <button
                   key={problem.id}
@@ -158,11 +151,16 @@ export default function LearningDashboard({
                 >
                   <span className="step-route">
                     <span className="step-orbit">
-                      {first ? (
-                        <Star size={29} fill="currentColor" />
-                      ) : (
-                        <Icon size={27} strokeWidth={2.5} />
-                      )}
+                      <JourneyIcon
+                        kind={
+                          reviewing
+                            ? "review"
+                            : problem.knowledgeId
+                              ? "knowledge"
+                              : "code"
+                        }
+                        current={first}
+                      />
                     </span>
                   </span>
                   <span className="step-content">
@@ -189,7 +187,7 @@ export default function LearningDashboard({
             {!visible.length && (
               <div className="journey-empty">
                 <span className="journey-empty-icon">
-                  {done ? <Trophy size={38} /> : <BookOpen size={38} />}
+                  <JourneyIcon kind={done ? "complete" : "empty"} />
                 </span>
                 <h3>
                   {plan.length
@@ -232,7 +230,7 @@ export default function LearningDashboard({
           )}
           <div className="journey-finish">
             <span />
-            <Flag size={19} />
+            <JourneyIcon kind="finish" />
             <span />
             <p>小步前进，日有所获</p>
           </div>
