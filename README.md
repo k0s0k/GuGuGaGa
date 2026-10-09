@@ -1,12 +1,12 @@
 <div align="center">
 
-<img src="public/gugugaga-icon.png" width="112" alt="GuGuGaGa 图标" />
+<p><img src="public/gugugaga-icon.png" width="200" height="200" alt="GuGuGaGa 图标" /></p>
 
-# GuGuGaGa
+<h1>GuGuGaGa</h1>
 
-每天一点，把知识记牢。
+<p>每天一点，把知识记牢。</p>
 
-[功能](#功能) · [安装与使用](#安装与使用) · [常见问题](#常见问题) · [开发](#开发)
+<p><a href="#功能">功能</a> · <a href="#安装与使用">安装与使用</a> · <a href="#常见问题">常见问题</a> · <a href="#开发">开发</a></p>
 
 </div>
 
@@ -44,10 +44,6 @@
 移动程序时保留整个文件夹，包括 `.exe` 和 `_internal`。升级前退出旧版，再打开新版，学习数据会继续沿用。
 
 ## 常见问题
-
-### 如何修改工作空间名称和头像？
-
-点击左下角个人区，在「个人资料」中填写工作空间名称、上传头像并保存。名称与头像会随完整备份一起迁移。
 
 ### 如何把笔记变成知识卡？
 
