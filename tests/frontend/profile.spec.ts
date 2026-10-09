@@ -9,13 +9,18 @@ const fixture = JSON.parse(
 async function mockApp(page: Page) {
   const data = structuredClone(fixture.bootstrap);
   data.state.settings.avatar = "";
+  data.state.settings.workspaceName = "我的工作空间";
   let failSave = false;
   let writes = 0;
+  let holdSave: Promise<void> | undefined;
+  const payloads: unknown[] = [];
   await page.route("**/api/**", async (route) => {
     const path = new URL(route.request().url()).pathname;
     if (path === "/api/bootstrap") return route.fulfill({ json: data });
     if (path === "/api/action") {
       writes++;
+      payloads.push(route.request().postDataJSON());
+      if (holdSave) await holdSave;
       if (failSave)
         return route.fulfill({
           status: 500,
@@ -37,6 +42,10 @@ async function mockApp(page: Page) {
       failSave = value;
     },
     writes: () => writes,
+    payloads,
+    hold: (paused: Promise<void>) => {
+      holdSave = paused;
+    },
   };
 }
 
@@ -74,7 +83,7 @@ for (const viewport of [
     await page.goto("/#today");
     if (viewport.width < 760)
       await page.getByRole("button", { name: "打开侧栏" }).click();
-    const profile = page.getByRole("button", { name: "编辑用户头像" });
+    const profile = page.getByRole("button", { name: "编辑个人资料" });
     await expect(profile).toBeInViewport({ ratio: 1 });
     const profileBox = await profile.boundingBox();
     expect(profileBox!.y + profileBox!.height).toBeLessThanOrEqual(
@@ -100,7 +109,7 @@ for (const viewport of [
       path: `.local/gugugaga-sidebar-${viewport.width}x${viewport.height}.png`,
     });
     await profile.click();
-    await expect(page.getByRole("heading", { name: "个人头像" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "个人资料" })).toBeVisible();
     if (viewport.width < 760)
       await expect(page.locator(".sidebar")).not.toHaveClass(/open/);
     await expect(page.locator(".brand")).toContainText("GuGuGaGa");
@@ -180,4 +189,147 @@ test("invalid files do not save; failed saves keep avatar preview for retry", as
   mock.fail(false);
   await page.getByRole("button", { name: "保存头像", exact: true }).click();
   await expect(page.locator(".profile .avatar img")).toBeVisible();
+});
+
+test("workspace name explicitly saves with Enter, trims and persists beside the avatar", async ({
+  page,
+}) => {
+  const mock = await mockApp(page);
+  const avatar =
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC";
+  mock.data.state.settings.avatar = avatar;
+  await page.goto("/#today");
+  await page.getByRole("button", { name: "编辑个人资料" }).click();
+  const input = page.getByLabel("工作空间名称", { exact: true });
+  await expect(input).toHaveValue("我的工作空间");
+  await input.fill("  咕咕的学习空间 🐧  ");
+  await expect(page.locator(".profile-details strong")).toHaveText(
+    "我的工作空间",
+  );
+  expect(mock.writes()).toBe(0);
+  await input.press("Enter");
+  await expect(page.locator(".profile-details strong")).toHaveText(
+    "咕咕的学习空间 🐧",
+  );
+  await expect(page.locator(".breadcrumb .workspace-name")).toHaveText(
+    "咕咕的学习空间 🐧",
+  );
+  await expect(input).toHaveValue("咕咕的学习空间 🐧");
+  expect(mock.payloads).toEqual([
+    { type: "settings", settings: { workspaceName: "咕咕的学习空间 🐧" } },
+  ]);
+  expect(mock.data.state.settings.avatar).toBe(avatar);
+  await page.reload();
+  await expect(input).toHaveValue("咕咕的学习空间 🐧");
+  await expect(page.locator(".profile .avatar img")).toHaveAttribute(
+    "src",
+    avatar,
+  );
+  await expect(page.locator(".breadcrumb .workspace-name")).toHaveAttribute(
+    "title",
+    "咕咕的学习空间 🐧",
+  );
+  await input.fill("不会保存的修改");
+  await page.getByRole("button", { name: "撤销名称修改" }).click();
+  await expect(input).toHaveValue("咕咕的学习空间 🐧");
+  expect(mock.writes()).toBe(1);
+});
+
+test("workspace name validates empty and long values and retains failed saves for retry", async ({
+  page,
+}) => {
+  const mock = await mockApp(page);
+  await page.goto("/#settings");
+  const input = page.getByLabel("工作空间名称", { exact: true });
+  const save = page.getByRole("button", { name: "保存名称", exact: true });
+  await input.fill("  ");
+  await expect(save).toBeDisabled();
+  await expect(page.locator("#workspace-name-hint")).toHaveText(
+    "请输入 1–40 个字符",
+  );
+  await input.press("Enter");
+  await input.fill("🐧".repeat(41));
+  await expect(save).toBeDisabled();
+  expect(mock.writes()).toBe(0);
+  await input.fill("企鹅的知识小屋");
+  mock.fail(true);
+  await save.click();
+  await expect(page.getByRole("alert")).toContainText("测试保存失败");
+  await expect(input).toHaveValue("企鹅的知识小屋");
+  await expect(page.locator(".profile-details strong")).toHaveText(
+    "我的工作空间",
+  );
+  mock.fail(false);
+  let release!: () => void;
+  mock.hold(
+    new Promise<void>((resolve) => {
+      release = resolve;
+    }),
+  );
+  try {
+    await save.click();
+    await expect(input).toBeDisabled();
+    await expect(
+      page.getByRole("button", { name: "正在保存名称…" }),
+    ).toBeDisabled();
+  } finally {
+    release();
+  }
+  await expect(page.locator(".profile-details strong")).toHaveText(
+    "企鹅的知识小屋",
+  );
+  await expect(input).toBeEnabled();
+});
+
+test("40-codepoint names truncate without clipping the profile or mobile header; markup stays text", async ({
+  page,
+}) => {
+  await mockApp(page);
+  await page.goto("/#settings");
+  const input = page.getByLabel("工作空间名称", { exact: true });
+  const longName = "🐧".repeat(40);
+  await input.fill(longName);
+  await page.getByRole("button", { name: "保存名称", exact: true }).click();
+  await expect(page.locator(".breadcrumb .workspace-name")).toHaveAttribute(
+    "title",
+    longName,
+  );
+  for (const width of [1366, 390]) {
+    await page.setViewportSize({ width, height: 768 });
+    if (width < 760)
+      await page.getByRole("button", { name: "打开侧栏" }).click();
+    await expect(
+      page.getByRole("button", { name: "编辑个人资料" }),
+    ).toBeInViewport({ ratio: 1 });
+    const metrics = await page.evaluate(() => {
+      const name = document.querySelector(
+        ".profile-details strong",
+      ) as HTMLElement;
+      const crumb = document.querySelector(
+        ".breadcrumb .workspace-name",
+      ) as HTMLElement;
+      const right = document
+        .querySelector(".topbar-right")!
+        .getBoundingClientRect();
+      return {
+        profileTruncated: name.scrollWidth > name.clientWidth,
+        crumbTruncated: crumb.scrollWidth > crumb.clientWidth,
+        headerRight: right.right,
+        contentFits: document.documentElement.scrollWidth <= window.innerWidth,
+      };
+    });
+    expect(metrics.profileTruncated).toBe(true);
+    expect(metrics.crumbTruncated).toBe(true);
+    expect(metrics.headerRight).toBeLessThanOrEqual(width);
+    expect(metrics.contentFits).toBe(true);
+    if (width < 760)
+      await page.getByRole("button", { name: "编辑个人资料" }).click();
+  }
+  const markup = "<img src=x onerror=alert(1)>";
+  await input.fill(markup);
+  await input.press("Enter");
+  await expect(page.locator(".breadcrumb .workspace-name")).toHaveText(markup);
+  await expect(page.locator(".breadcrumb .workspace-name img")).toHaveCount(0);
+  await page.reload();
+  await expect(page.locator(".profile-details strong")).toHaveText(markup);
 });

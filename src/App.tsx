@@ -323,6 +323,7 @@ export default function App() {
       </div>
     );
   const projection = knowledgeProjection(problems, state);
+  const workspaceName = state.settings.workspaceName || "我的工作空间";
   const openStudy = (id: number) => {
     const itemId = projection.reverse.get(id);
     if (itemId) openKnowledge(itemId);
@@ -432,23 +433,23 @@ export default function App() {
           <div className="profile">
             <button
               className="profile-account"
-              aria-label="编辑用户头像"
-              title="自定义用户头像"
+              aria-label="编辑个人资料"
+              title="编辑名称和头像"
               onClick={() => {
                 navigate("settings");
                 requestAnimationFrame(() => {
                   document
-                    .getElementById("avatar-heading")
+                    .getElementById("profile-heading")
                     ?.scrollIntoView({ block: "center" });
                   document
-                    .getElementById("avatar-heading")
+                    .getElementById("profile-heading")
                     ?.focus({ preventScroll: true });
                 });
               }}
             >
               <Avatar source={state.settings.avatar} />
               <span className="profile-details">
-                <strong>我的工作空间</strong>
+                <strong title={workspaceName}>{workspaceName}</strong>
                 <span>
                   <i className="status-dot" />
                   本地存储
@@ -475,7 +476,9 @@ export default function App() {
             >
               <Menu size={18} />
             </button>
-            <span>我的工作空间</span>
+            <span className="workspace-name" title={workspaceName}>
+              {workspaceName}
+            </span>
             <ChevronRight size={13} />
             <strong>{title}</strong>
           </div>
@@ -1415,9 +1418,7 @@ function Review({
               <h3>你的记忆，值得被照顾</h3>
             </div>
             <MemoryChart />
-            <p className="small-copy">
-              曲线展示预计记忆保留率。
-            </p>
+            <p className="small-copy">曲线展示预计记忆保留率。</p>
             <div className="rating-explain">
               <div>
                 <i className="rating-dot again" />
@@ -1757,6 +1758,7 @@ function Settings({
       <div className="settings-grid">
         <AvatarSettings
           avatar={state.settings.avatar}
+          workspaceName={state.settings.workspaceName}
           mutate={mutate}
           notify={notify}
         />
@@ -1864,9 +1866,7 @@ function Settings({
           </h2>
           <div className="setting-block">
             <strong>本地数据与备份</strong>
-            <p>
-              学习数据保存在本机，支持导入和导出备份。
-            </p>
+            <p>学习数据保存在本机，支持导入和导出备份。</p>
             <div className="button-group">
               <button
                 className="secondary"
@@ -1921,18 +1921,14 @@ function Settings({
               </p>
             )}
           </div>
-          <div className="info-note">
-            在本机执行样例测试，请运行可信代码。
-          </div>
+          <div className="info-note">在本机执行样例测试，请运行可信代码。</div>
         </section>
         <section className="panel settings-panel sources-panel">
           <h2>
             <BookOpen size={18} />
             关于这份学习工具
           </h2>
-          <p>
-            GuGuGaGa 将知识整理、代码练习与间隔复习结合，帮助你持续学习。
-          </p>
+          <p>GuGuGaGa 将知识整理、代码练习与间隔复习结合，帮助你持续学习。</p>
           <div className="source-links">
             <a
               href="https://leetcode.cn/studyplan/top-100-liked/"

@@ -9,12 +9,24 @@ import os
 from pathlib import Path
 import sqlite3
 import threading
+import unicodedata
 from uuid import uuid4
 from .scheduler import RATINGS, schedule, utc_now, parse_time
 from .knowledge import deck_fields, item_fields, identifier, import_into, text
 
 MAX_STATE_BYTES = 64 * 1024 * 1024
 MAX_AVATAR_BYTES = 256 * 1024
+
+
+def workspace_name(value):
+    if not isinstance(value, str):
+        raise ValueError("工作空间名称须为 1–40 个字符")
+    if any(unicodedata.category(char) in ("Cc", "Cs", "Zl", "Zp") for char in value):
+        raise ValueError("工作空间名称不能包含换行或控制字符")
+    value = value.strip()
+    if not 1 <= len(value) <= 40:
+        raise ValueError("工作空间名称须为 1–40 个字符")
+    return value
 
 
 def avatar_data_url(value):
@@ -51,7 +63,7 @@ def avatar_data_url(value):
 
 DEFAULT_STATE = {
     "version": 2,
-    "settings": {"dailyGoal": 3, "newPerDay": 3, "language": "python", "mode": "leetcode", "retention": 0.9, "theme": "light", "includeHot100": True, "avatar": ""},
+    "settings": {"dailyGoal": 3, "newPerDay": 3, "language": "python", "mode": "leetcode", "retention": 0.9, "theme": "light", "includeHot100": True, "avatar": "", "workspaceName": "我的工作空间"},
     "cards": {}, "notes": {}, "favorites": [], "drafts": {}, "events": [], "checkins": [],
     "solutions": {}, "decks": {}, "knowledge": {}, "knowledgeCards": {},
     "knowledgeNotes": {}, "knowledgeFavorites": [], "knowledgeEvents": [],
@@ -75,7 +87,7 @@ class Store:
                 upgraded = self.validate_import(state)
                 self._backup(state, "before-v2-upgrade")
                 db.execute("UPDATE state SET data=? WHERE id=1", (json.dumps(upgraded, ensure_ascii=False, allow_nan=False),))
-            elif any(key not in state.get("settings", {}) for key in ("includeHot100", "avatar")):
+            elif any(key not in state.get("settings", {}) for key in ("includeHot100", "avatar", "workspaceName")):
                 # Additive v2 preference: retain all existing study data unchanged.
                 state["settings"] = self.settings(state.get("settings", {}))
                 db.execute("UPDATE state SET data=? WHERE id=1", (json.dumps(state, ensure_ascii=False, allow_nan=False),))
@@ -141,6 +153,7 @@ class Store:
         if type(result["includeHot100"]) is not bool:
             raise ValueError("Hot 100 推荐开关必须为布尔值")
         result["avatar"] = avatar_data_url(result["avatar"])
+        result["workspaceName"] = workspace_name(result["workspaceName"])
         if type(result["retention"]) not in (int, float) or not math.isfinite(result["retention"]) or not 0.8 <= result["retention"] <= 0.95:
             raise ValueError("目标记忆保留率范围为 80%–95%")
         return result

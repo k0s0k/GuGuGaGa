@@ -4,89 +4,66 @@
 
 # GuGuGaGa
 
-**每天一点，把知识记牢。**
+每天一点，把知识记牢。
 
-把学习笔记变成知识卡，让复习成为每天的小习惯。
-
-![Windows](https://img.shields.io/badge/Windows-桌面应用-0078D4?style=flat-square)
-![Python / C++](https://img.shields.io/badge/刷题-Python%20%2F%20C%2B%2B-3776AB?style=flat-square)
-![Local](https://img.shields.io/badge/学习数据-本地保存-536D59?style=flat-square)
-
-[快速开始](#快速开始) · [功能一览](#功能一览) · [笔记导入](#笔记导入) · [开发指南](docs/development.md)
+[功能](#功能) · [安装与使用](#安装与使用) · [常见问题](#常见问题) · [开发](#开发)
 
 </div>
 
----
+本地知识复习与打卡软件。把 C++、英语、Blender、UE5 等学习笔记整理成知识卡，用间隔复习巩固记忆。内置 LeetCode Hot100，支持 Python / C++ 与 LeetCode / ACM 两种答题模式。
 
-GuGuGaGa 是一款本地知识复习与打卡软件。无论是 C++、英语、Blender 还是 UE5，都可以建立自己的知识库，用问答、填空和实践卡片巩固记忆。内置 LeetCode Hot100 专区，让知识学习与算法练习共用一份复习计划。
+## 支持平台
+
+- Windows 桌面版：解压后打开 `.exe`。
+- 本地浏览器：从源码启动后访问学习界面。
+
+## 屏幕截图
 
 ![GuGuGaGa 今日学习界面（示例数据）](docs/images/overview.png)
 
-## 功能一览
+## 功能
 
-| 功能 | 你可以做什么 |
-| --- | --- |
-| 📚 通用知识库 | 按主题管理知识点，创建问答、填空、实践步骤，搜索、收藏与归档 |
-| 📝 笔记转卡片 | 导入 Markdown / TXT，按标题拆分，或使用 AI 生成知识卡；预览编辑后保存 |
-| 🔁 间隔复习 | 先回忆、再揭晓，用四档记忆反馈安排下一次复习 |
-| 📅 打卡与日历 | 设置每日目标，查看完成情况、连续打卡和学习记录 |
-| 💻 Hot100 练习 | Python / C++ × LeetCode / ACM，两种语言、两种答题模式与本地运行 |
-| ✍️ 个人题解 | 编辑并保存简洁版、注释版和完整解析，配合 Markdown 笔记复盘 |
-| 🎨 个人工作空间 | 浅色与深色主题、自定义头像、适应窗口尺寸的侧边栏 |
-| 💾 备份与迁移 | 学习数据保存在本机，通过完整 JSON 备份迁移或恢复 |
+- [x] 按主题管理知识库，创建问答、填空与实践步骤卡片
+- [x] Markdown / TXT 笔记拆分，AI 提炼知识点，导入前预览和编辑
+- [x] 四档记忆反馈、到期复习与每日学习计划
+- [x] 每日目标、自动打卡、连续记录与日历
+- [x] LeetCode Hot100 专题练习，Python / C++ 本地运行
+- [x] 自定义简洁题解、注释题解与完整解析
+- [x] Markdown 笔记、代码补全与自动缩进
+- [x] 自定义工作空间名称和头像，浅色与深色主题
+- [x] 搜索、收藏、归档，知识库交换与完整数据备份
 
-## 快速开始
+## 安装与使用
 
-### 1. 打开软件
+当前桌面构建位于 **`release/GuGuGaGa-v2.1.2/`**。
 
-打开桌面包中的 **`GuGuGaGa.exe`**，当前构建目录为 `release/GuGuGaGa-v2.1.1/`。包内已包含 Python、C++ 工具链和界面资源。
+1. 打开其中的 **`GuGuGaGa.exe`**；运行 `create-shortcut.cmd` 可创建桌面快捷方式。
+2. 在「我的知识库」创建主题与卡片，或导入笔记；算法练习进入 Hot100 题库。
+3. 在「今日学习」完成复习：**独立回忆 → 揭晓答案 → 选择记忆反馈**。达到每日目标后自动打卡。
 
-将 **`.exe` 与 `_internal` 文件夹一起保留**。双击同目录的 **`create-shortcut.cmd`**，即可创建桌面快捷方式。
+移动程序时保留整个文件夹，包括 `.exe` 和 `_internal`。升级前退出旧版，再打开新版，学习数据会继续沿用。
 
-### 2. 准备学习内容
+## 常见问题
 
-进入「我的知识库」创建主题与卡片，导入自己的笔记，或从内置示例开始。算法练习可直接进入 Hot100 题库，按专题选择题目。
+### 如何修改工作空间名称和头像？
 
-点击左下角个人工作空间设置头像与每日目标。专注自己的知识库时，可关闭「每日计划包含 Hot100」。
+点击左下角个人区，在「个人资料」中填写工作空间名称、上传头像并保存。名称与头像会随完整备份一起迁移。
 
-### 3. 开始每日复习
+### 如何把笔记变成知识卡？
 
-打开「今日学习」，完成到期复习和新内容：**独立回忆 → 揭晓答案 → 选择记忆反馈**。达到每日目标后自动打卡，在日历中回看进度。
+在「我的知识库」中导入 Markdown / TXT，或直接粘贴文本，按标题拆分后编辑卡片预览。AI 拆分需填写兼容 Chat Completions 的 API 地址、模型和 Key；点击生成时会将笔记发送给所选服务，Key 仅用于当前会话与请求。
 
-## 笔记导入
+整理好的卡片可通过标准 JSON 导入与导出：[模板](public/knowledge-template.json) · [JSON Schema](public/knowledge-schema.json) · [格式说明](docs/knowledge-format.md) · [文档拆分指南](docs/document-import.md)。
 
-在「我的知识库」中选择导入方式，确认预览后保存：
+### 如何专注自己的知识库？
 
-| 方式 | 适合的内容 | 操作 |
-| --- | --- | --- |
-| 按标题拆分 | 已按章节整理的 Markdown / TXT | 导入文件或粘贴文本，生成卡片预览 |
-| AI 拆分 | 需要提炼重点的学习笔记 | 填写 API 地址、模型和 Key，生成并调整卡片 |
-| JSON 导入 | 已整理好的知识库，或其他工具生成的卡片 | 按标准格式导入，校验后保存 |
+在「偏好设置」中关闭「每日计划包含 Hot100」，今日学习与复习计划就会围绕自己的知识卡安排。
 
-AI 拆分兼容 **Chat Completions API**，支持远程 HTTPS 服务及本机模型服务。点击生成时，笔记会发送到填写的服务地址，费用按该服务规则计算；Key 仅用于当前会话与请求。
+### 如何备份或换电脑？
 
-[下载 JSON 模板](public/knowledge-template.json) · [JSON Schema](public/knowledge-schema.json) · [导入格式](docs/knowledge-format.md) · [文档与 AI 拆分指南](docs/document-import.md)
+在「偏好设置」中导出完整备份，到新设备导入即可恢复进度、题解、笔记与个人设置。知识库 JSON 用于合并学习内容，完整备份用于迁移全部个人数据。
 
-## Hot100 工作台
-
-每题提供题意、样例、输入协议与三层答案：**简洁代码、中文注释、完整解析**。个人题解按题目、语言和模式分别保存，便于整理适合自己的写法。
-
-| 操作 | 快捷键 |
-| --- | --- |
-| 换行并按语法缩进 | `Enter` |
-| 接受补全 / 缩进 | `Tab` |
-| 减少缩进 | `Shift + Tab` |
-| 打开补全列表 | `Ctrl + Space` |
-
-LeetCode 模式编写指定函数或类；ACM 模式编写完整标准输入输出程序。用内置样例或自定义输入运行代码，也可通过题目链接前往原站提交。
-
-## 数据与升级
-
-学习进度、题解、笔记、头像和设置保存在本机。更换电脑时，在「偏好设置」中导出完整备份，再到新设备导入。导入前会自动保存当前数据，便于恢复。
-
-GuGuGaGa 沿用 CodeRecall 2 的学习数据。升级时先退出正在运行的旧版，再打开新版；移动程序时复制整个程序文件夹。知识库 JSON 用于合并学习内容，完整备份用于迁移全部个人数据。
-
-## 从源码运行
+## 开发
 
 准备 **Python 3.10+** 和 **Node.js 22+**，在项目根目录执行：
 
@@ -96,12 +73,12 @@ npm run build
 python -m server.app
 ```
 
-打开 **[http://127.0.0.1:8766](http://127.0.0.1:8766)**。Windows 也可以双击根目录的 `start.cmd`。C++ 源码运行需配置支持 C++17 的编译器。
+打开 [http://127.0.0.1:8766](http://127.0.0.1:8766)。Windows 也可双击 `start.cmd`。从源码运行 C++ 代码时，需配置支持 C++17 的编译器。
 
-热更新、桌面打包、测试与数据目录说明见 [开发指南](docs/development.md)。
+热更新、测试、桌面打包与数据目录见 [开发指南](docs/development.md)。
 
-## 参考与致谢
+## 致谢
 
-[LeetCode Hot100](https://leetcode.cn/studyplan/top-100-liked/) 提供题目入口，[代码随想录](https://github.com/youngyangyang04/leetcode-master) 启发专题组织，[SSP-MMC](https://github.com/maimemo/SSP-MMC) 提供间隔重复研究参考。项目使用 React、Vite、CodeMirror、Lucide 等开源工具构建。
-
-README 的信息组织参考 [Zotero Agents](https://github.com/leike0813/zotero-agents)。
+- [LeetCode Hot100](https://leetcode.cn/studyplan/top-100-liked/) 与 [代码随想录](https://github.com/youngyangyang04/leetcode-master)：题目入口与专题组织。
+- [SSP-MMC](https://github.com/maimemo/SSP-MMC)：间隔重复研究参考。
+- React、Vite、CodeMirror、Lucide 等开源工具。

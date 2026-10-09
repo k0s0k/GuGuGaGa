@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ImagePlus, LoaderCircle, UserRound } from "lucide-react";
 import type { AppState } from "./types";
+import WorkspaceNameSettings from "./WorkspaceNameSettings";
 
 const MAX_UPLOAD = 5 * 1024 * 1024;
 
@@ -70,10 +71,12 @@ async function prepareAvatar(file: File): Promise<string> {
 
 export default function AvatarSettings({
   avatar,
+  workspaceName,
   mutate,
   notify,
 }: {
   avatar?: string;
+  workspaceName?: string;
   mutate: (payload: unknown) => Promise<AppState>;
   notify: (message: string) => void;
 }) {
@@ -124,19 +127,23 @@ export default function AvatarSettings({
   return (
     <section
       className="panel settings-panel avatar-settings"
-      aria-labelledby="avatar-heading"
+      aria-labelledby="profile-heading"
     >
-      <h2 id="avatar-heading" tabIndex={-1}>
+      <h2 id="profile-heading" tabIndex={-1}>
         <UserRound size={18} />
-        个人头像
+        个人资料
       </h2>
+      <WorkspaceNameSettings
+        workspaceName={workspaceName}
+        mutate={mutate}
+        notify={notify}
+      />
+      <h3 className="profile-avatar-heading">个人头像</h3>
       <div className="avatar-settings-content">
         <Avatar source={draft} className="avatar-settings-preview" />
         <div className="avatar-settings-options">
           <strong>让工作空间更像你</strong>
-          <p>
-            支持 PNG、JPEG、WebP，最大 5 MB。自动居中裁剪，随学习备份保存。
-          </p>
+          <p>支持 PNG、JPEG、WebP，最大 5 MB。自动居中裁剪，随学习备份保存。</p>
           <div className="button-group">
             <button
               className="secondary"

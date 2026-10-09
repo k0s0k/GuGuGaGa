@@ -449,7 +449,7 @@ test("disabling Hot100 recommendations leaves a knowledge-only plan and keeps th
   expect((await state(request)).settings.includeHot100).toBe(false);
 });
 
-test("v2 backup download and confirmed restore retain knowledge, notes, solutions and avatar", async ({
+test("v2 backup download and confirmed restore retain knowledge, notes, solutions, avatar and workspace name", async ({
   page,
   request,
 }) => {
@@ -484,8 +484,14 @@ test("v2 backup download and confirmed restore retain knowledge, notes, solution
   });
   await page.getByRole("button", { name: "保存头像", exact: true }).click();
   await expect(page.locator(".profile .avatar img")).toBeVisible();
+  await page.getByLabel("工作空间名称", { exact: true }).fill("企鹅的知识小屋");
+  await page.getByRole("button", { name: "保存名称", exact: true }).click();
+  await expect(page.locator(".profile-details strong")).toHaveText(
+    "企鹅的知识小屋",
+  );
   const saved = await state(request);
   expect(saved.settings.avatar).toMatch(/^data:image\/png;base64,/);
+  expect(saved.settings.workspaceName).toBe("企鹅的知识小屋");
   const downloading = page.waitForEvent("download");
   await page.getByRole("button", { name: "导出备份", exact: true }).click();
   const downloaded = await downloading;
@@ -501,6 +507,9 @@ test("v2 backup download and confirmed restore retain knowledge, notes, solution
   });
   await page.reload();
   await expect(page.locator(".profile .avatar img")).toHaveCount(0);
+  await expect(page.locator(".profile-details strong")).toHaveText(
+    "我的工作空间",
+  );
   await page
     .locator('input[type="file"][accept="application/json,.json"]')
     .setInputFiles({
@@ -520,6 +529,12 @@ test("v2 backup download and confirmed restore retain knowledge, notes, solution
   await expect(page.locator(".profile .avatar img")).toHaveAttribute(
     "src",
     saved.settings.avatar,
+  );
+  await expect(page.locator(".profile-details strong")).toHaveText(
+    "企鹅的知识小屋",
+  );
+  await expect(page.locator(".breadcrumb .workspace-name")).toHaveText(
+    "企鹅的知识小屋",
   );
   await page.goto("/#knowledge/qa-card");
   await expect(page.getByLabel("知识点学习笔记", { exact: true })).toHaveValue(

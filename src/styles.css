@@ -452,6 +452,9 @@ kbd {
   display: block;
   font-size: 10px;
   font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .profile-details > span {
   display: flex;
@@ -463,6 +466,40 @@ kbd {
 }
 .avatar-settings {
   grid-column: 1 / -1;
+}
+.workspace-name-settings {
+  margin: 20px 0 24px;
+  padding-bottom: 23px;
+  border-bottom: 1px solid var(--line);
+}
+.workspace-name-settings > label,
+.profile-avatar-heading {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  margin-bottom: 10px;
+}
+.workspace-name-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.workspace-name-controls > input {
+  flex: 1 1 180px;
+  width: 100%;
+  min-width: 0;
+  max-width: 360px;
+  padding: 9px 12px;
+  font-size: 12px;
+}
+.workspace-name-settings > p {
+  font-size: 11px;
+  line-height: 1.7;
+  margin-top: 8px;
+}
+.profile-error {
+  color: #bd4949;
 }
 .avatar-settings-content {
   display: flex;
@@ -553,17 +590,36 @@ kbd {
 }
 .breadcrumb {
   display: flex;
+  flex: 1;
+  min-width: 0;
   align-items: center;
   gap: 12px;
   font-size: 10px;
   color: var(--text-faint);
 }
+.breadcrumb .workspace-name {
+  max-width: 240px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.breadcrumb > svg,
+.breadcrumb > button {
+  flex-shrink: 0;
+}
 .breadcrumb strong {
   color: var(--text-secondary);
   font-weight: 450;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .topbar-right {
   display: flex;
+  flex-shrink: 0;
+  margin-left: 14px;
   gap: 12px;
   align-items: center;
 }

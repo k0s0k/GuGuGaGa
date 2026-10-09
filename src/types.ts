@@ -49,6 +49,7 @@ export interface Settings {
   theme: "light" | "dark";
   includeHot100: boolean;
   avatar: string;
+  workspaceName: string;
 }
 export interface AppState {
   version: number;

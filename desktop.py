@@ -37,7 +37,7 @@ APP_NAME = "GuGuGaGa"
 # Keep the v2 activation protocol and data directory compatible with CodeRecall.
 APP_ID = "CodeRecall.Desktop.2"
 WINDOWS_APP_ID = "GuGuGaGa.Desktop"
-VERSION = "2.1.1"
+VERSION = "2.1.2"
 LOGGER = logging.getLogger("coderecall.desktop")
 
 
@@ -295,6 +295,13 @@ def self_test(report_path: Path):
                 assert service.store.read()["settings"]["avatar"] == avatar
                 assert service.store.validate_import(state)["settings"]["avatar"] == avatar
                 report["checks"].append("avatar_persistence_and_backup")
+                workspace_name = "企鹅的知识小屋"
+                state = service.store.action({"type": "settings", "settings": {"workspaceName": workspace_name}})
+                assert Store(service.store.path, BY_ID).read()["settings"]["workspaceName"] == workspace_name
+                restored = Store(Path(tmp) / "restored.db", BY_ID)
+                restored.action({"type": "import", "state": state})
+                assert restored.read()["settings"]["workspaceName"] == workspace_name
+                report["checks"].append("workspace_name_persistence_and_backup")
                 report["passed"] = True
             finally:
                 service.stop()
