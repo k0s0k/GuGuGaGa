@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import type { AppState, Problem, View } from "./types";
 import { dailyPlan, dateShift, dayKey, isDue, streak } from "./utils";
+import CheckInButton from "./CheckInButton";
 import "./learning-dashboard.css";
 
 export default function LearningDashboard({
@@ -25,11 +26,15 @@ export default function LearningDashboard({
   state,
   onOpen,
   navigate,
+  mutate,
+  notify,
 }: {
   problems: Problem[];
   state: AppState;
   onOpen: (id: number) => void;
   navigate: (view: View) => void;
+  mutate: (payload: unknown) => Promise<AppState>;
+  notify: (message: string) => void;
 }) {
   const [tab, setTab] = useState("全部任务");
   const [expanded, setExpanded] = useState(false);
@@ -48,8 +53,8 @@ export default function LearningDashboard({
       (tab === "待复习" ? !!state.cards[problem.id] : !state.cards[problem.id]),
   );
   const visible = expanded ? filtered : filtered.slice(0, 6);
-  const checked = state.checkins.includes(today);
   const goal = state.settings.dailyGoal;
+  const achieved = done >= goal;
   const progress = Math.min(100, (done / goal) * 100);
   const learned = problems.filter((problem) => state.cards[problem.id]).length;
   const weekStart = dateShift(now, -((now.getDay() + 6) % 7));
@@ -67,8 +72,10 @@ export default function LearningDashboard({
             {now.getMonth() + 1} 月 {now.getDate()} 日 ·{" "}
             {now.toLocaleDateString("zh-CN", { weekday: "long" })}
           </div>
-          <h1>{checked ? "今天的努力，闪闪发光。" : "今天，也进步一点点。"}</h1>
-          <p>和咕咕一起，把每一次回忆变成更牢的记忆。</p>
+          <h1>
+            {achieved ? "今天的努力，闪闪发光。" : "今天，也进步一点点。"}
+          </h1>
+          <p>和咕嘎一起，把每一次回忆变成更牢的记忆。</p>
         </div>
         <button className="primary start-button" onClick={start}>
           <Play size={18} fill="currentColor" />
@@ -79,6 +86,8 @@ export default function LearningDashboard({
       <div className="learning-layout">
         <section
           className="learning-journey today-panel"
+          data-panel-id="journey"
+          data-panel-label="学习旅程"
           aria-labelledby="journey-title"
         >
           <div className="journey-banner">
@@ -180,11 +189,7 @@ export default function LearningDashboard({
             {!visible.length && (
               <div className="journey-empty">
                 <span className="journey-empty-icon">
-                  {checked || done ? (
-                    <Trophy size={38} />
-                  ) : (
-                    <BookOpen size={38} />
-                  )}
+                  {done ? <Trophy size={38} /> : <BookOpen size={38} />}
                 </span>
                 <h3>
                   {plan.length
@@ -235,7 +240,9 @@ export default function LearningDashboard({
 
         <aside className="learning-side">
           <section
-            className={`quest-card ${checked ? "is-complete" : ""}`}
+            className={`quest-card ${achieved ? "is-complete" : ""}`}
+            data-panel-id="goal"
+            data-panel-label="每日目标"
             aria-labelledby="daily-quest-title"
           >
             <div className="quest-title">
@@ -247,7 +254,7 @@ export default function LearningDashboard({
               <img src="/gugugaga-icon.png" alt="" />
               <span className="coach-spark spark-two">✧</span>
               <span className="coach-bubble">
-                {checked ? "好耶，目标达成！" : "咕咕陪你一起！"}
+                {achieved ? "好耶，目标达成！" : "咕嘎陪你一起！"}
               </span>
             </div>
             <div className="quest-count">
@@ -255,7 +262,7 @@ export default function LearningDashboard({
                 {done}
                 <small> / {goal} 项</small>
               </strong>
-              <span>{checked ? "今日已打卡" : "今日完成"}</span>
+              <span>{achieved ? "学习目标已达成" : "今日学习"}</span>
             </div>
             <div
               className="quest-meter"
@@ -269,13 +276,19 @@ export default function LearningDashboard({
               <span style={{ width: `${progress}%` }} />
             </div>
             <p>
-              {checked
+              {achieved
                 ? "把这一份坚持，带到明天。"
-                : `再完成 ${Math.max(0, goal - done)} 项，点亮今天的打卡。`}
+                : `再完成 ${Math.max(0, goal - done)} 项，达成今日学习目标。`}
             </p>
+            <CheckInButton state={state} mutate={mutate} notify={notify} />
           </section>
 
-          <section className="streak-card" aria-labelledby="streak-title">
+          <section
+            className="streak-card"
+            aria-labelledby="streak-title"
+            data-panel-id="streak"
+            data-panel-label="连续打卡"
+          >
             <div className="streak-summary">
               <div className="streak-flame">
                 <Flame size={31} fill="currentColor" />
@@ -323,7 +336,11 @@ export default function LearningDashboard({
             </button>
           </section>
 
-          <section className="explore-card">
+          <section
+            className="explore-card"
+            data-panel-id="explore"
+            data-panel-label="探索知识库"
+          >
             <span className="explore-icon">
               <BookOpen size={27} />
             </span>
@@ -343,7 +360,11 @@ export default function LearningDashboard({
           </section>
         </aside>
       </div>
-      <div className="learning-summary">
+      <div
+        className="learning-summary"
+        data-panel-id="summary"
+        data-panel-label="学习概览"
+      >
         <div>
           <span className="summary-symbol blue">
             <BookOpen size={21} />

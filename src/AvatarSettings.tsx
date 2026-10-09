@@ -127,6 +127,8 @@ export default function AvatarSettings({
   return (
     <section
       className="panel settings-panel avatar-settings"
+      data-panel-id="profile"
+      data-panel-label="个人资料"
       aria-labelledby="profile-heading"
     >
       <h2 id="profile-heading" tabIndex={-1}>

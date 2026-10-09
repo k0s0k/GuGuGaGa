@@ -216,7 +216,7 @@ test("manual deck and card creation/editing persist through reload", async ({
   expect(Object.values(saved.knowledge)[0].answer).toContain("某一时刻的位置");
 });
 
-test("revealing and rating a real card joins LeetCode in calendar check-ins", async ({
+test("learning stays separate from manual check-in and shares the calendar", async ({
   page,
   request,
 }) => {
@@ -252,13 +252,18 @@ test("revealing and rating a real card joins LeetCode in calendar check-ins", as
     eventId: "calendar-lc",
   });
   const day = combined.knowledgeEvents[0].day;
-  expect(combined.checkins).toContain(day);
+  expect(combined.checkins).toEqual([]);
   await page.goto("/#calendar");
   await page.reload(); // The preceding LeetCode event was seeded outside the UI.
+  await page.getByRole("button", { name: "签到", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "今日已签到", exact: true }),
+  ).toBeDisabled();
+  expect((await state(request)).checkins).toEqual([day]);
   await page
-    .getByRole("button", { name: `${day}，学习 2 项`, exact: true })
+    .getByRole("button", { name: `${day}，学习 2 项，已签到`, exact: true })
     .click();
-  await expect(page.getByText("今日目标已完成", { exact: true })).toBeVisible();
+  await expect(page.getByText("这一天已签到", { exact: true })).toBeVisible();
   await expect(
     page.locator(".timeline").getByText("主动回忆练习", { exact: true }),
   ).toBeVisible();
@@ -410,6 +415,7 @@ test("disabling Hot100 recommendations leaves a knowledge-only plan and keeps th
   page,
   request,
 }) => {
+  await action(request, { type: "settings", settings: { theme: "light" } });
   await action(request, {
     type: "knowledge-import",
     document: knowledgeDocument(),

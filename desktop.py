@@ -37,7 +37,7 @@ APP_NAME = "GuGuGaGa"
 # Keep the v2 activation protocol and data directory compatible with CodeRecall.
 APP_ID = "CodeRecall.Desktop.2"
 WINDOWS_APP_ID = "GuGuGaGa.Desktop"
-VERSION = "2.2.1"
+VERSION = "2.3.0"
 LOGGER = logging.getLogger("coderecall.desktop")
 
 
@@ -170,7 +170,7 @@ def native_window(service: DesktopService, directory: Path, smoke_report: Path |
     window = webview.create_window(
         f"{APP_NAME} · 知识与复习", service.url,
         width=1320, height=900, min_size=(900, 640),
-        background_color="#fbfbfa", hidden=smoke_report is not None,
+        background_color="#211e19", hidden=smoke_report is not None,
     )
     service.on_activate = lambda: (window.restore(), window.show())
     outcome = {"passed": False, "renderer": "edgechromium", "version": VERSION}
@@ -184,8 +184,14 @@ def native_window(service: DesktopService, directory: Path, smoke_report: Path |
             try:
                 text = window.evaluate_js("document.body.innerText") or ""
                 if "每日旅程" in text and "Hot 100" in text:
-                    outcome.update(passed=True, title=window.evaluate_js("document.title"), hasDashboard=True)
-                    break
+                    outcome.update(
+                        title=window.evaluate_js("document.title"), hasDashboard=True,
+                        theme=window.evaluate_js("document.documentElement.dataset.theme"),
+                        hasManualCheckin="签到" in text, hasPanelLayout="面板布局" in text,
+                    )
+                    if outcome["theme"] == "dark" and outcome["hasManualCheckin"] and outcome["hasPanelLayout"]:
+                        outcome["passed"] = True
+                        break
             except Exception:
                 pass
             time.sleep(0.15)
@@ -266,8 +272,10 @@ def self_test(report_path: Path):
                 response = connection.getresponse()
                 payload = json.loads(response.read())
                 assert response.status == 200 and len(payload["problems"]) == 100
+                assert payload["state"]["settings"]["theme"] == "dark", "The initial theme should be dark"
                 connection.close()
                 report["checks"].append("http_hot100")
+                report["checks"].append("default_dark_theme")
                 report["capabilities"] = capabilities()
                 for language in ("python", "cpp"):
                     for mode in ("leetcode", "acm"):
@@ -296,12 +304,25 @@ def self_test(report_path: Path):
                 assert service.store.validate_import(state)["settings"]["avatar"] == avatar
                 report["checks"].append("avatar_persistence_and_backup")
                 workspace_name = "企鹅的知识小屋"
-                state = service.store.action({"type": "settings", "settings": {"workspaceName": workspace_name}})
+                state = service.store.action({"type": "settings", "settings": {"workspaceName": workspace_name, "dailyGoal": 1}})
                 assert Store(service.store.path, BY_ID).read()["settings"]["workspaceName"] == workspace_name
+                assert state["checkins"] == [], "Studying and saving settings must not check in automatically"
+                state = service.store.action({"type": "checkin"})
+                assert state["checkins"] == [datetime.now().date().isoformat()]
+                assert service.store.action({"type": "checkin"})["checkins"] == state["checkins"]
+                assert Store(service.store.path, BY_ID).read()["checkins"] == state["checkins"]
                 restored = Store(Path(tmp) / "restored.db", BY_ID)
+                independent_checkin = restored.action({"type": "checkin"})
+                assert len(independent_checkin["checkins"]) == 1
+                assert independent_checkin["events"] == [] and independent_checkin["knowledgeEvents"] == []
                 restored.action({"type": "import", "state": state})
                 assert restored.read()["settings"]["workspaceName"] == workspace_name
+                assert restored.read()["checkins"] == state["checkins"]
                 report["checks"].append("workspace_name_persistence_and_backup")
+                report["checks"].append("manual_checkin_persistence_and_backup")
+                restored.action({"type": "settings", "settings": {"theme": "light"}})
+                assert Store(restored.path, BY_ID).read()["settings"]["theme"] == "light"
+                report["checks"].append("theme_preference_persistence")
                 report["passed"] = True
             finally:
                 service.stop()

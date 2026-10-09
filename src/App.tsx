@@ -6,7 +6,7 @@ import {
   useRef,
   useState,
 } from "react";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import {
   ArrowDownToLine,
   ArrowRight,
@@ -47,6 +47,8 @@ import Knowledge, { KnowledgeStudy } from "./Knowledge";
 import LearningDashboard from "./LearningDashboard";
 import { knowledgeProjection } from "./knowledgeProjection";
 import AvatarSettings, { Avatar } from "./AvatarSettings";
+import PanelLayout, { revealPanel, SidebarResize } from "./PanelLayout";
+import CheckInButton from "./CheckInButton";
 import type { AppState, Capabilities, Problem, View } from "./types";
 import {
   dateShift,
@@ -178,6 +180,29 @@ export default function App() {
     [help, setHelp] = useState(false),
     [category, setCategory] = useState("全部专题");
   const [, setClock] = useState(0);
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    try {
+      const value = Number(localStorage.getItem("gugugaga-sidebar-width"));
+      return value >= 180 && value <= 340 ? value : 226;
+    } catch {
+      return 226;
+    }
+  });
+  const [sidebarHidden, setSidebarHidden] = useState(() => {
+    try {
+      return localStorage.getItem("gugugaga-sidebar-hidden") === "true";
+    } catch {
+      return false;
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem("gugugaga-sidebar-width", String(sidebarWidth));
+      localStorage.setItem("gugugaga-sidebar-hidden", String(sidebarHidden));
+    } catch {
+      /* Layout preferences are optional. */
+    }
+  }, [sidebarWidth, sidebarHidden]);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const notify = useCallback((message: string) => {
     setToast(message);
@@ -206,7 +231,7 @@ export default function App() {
     return () => clearInterval(tick);
   }, []);
   useEffect(() => {
-    document.documentElement.dataset.theme = state?.settings.theme || "light";
+    document.documentElement.dataset.theme = state?.settings.theme || "dark";
   }, [state?.settings.theme]);
   useEffect(() => {
     const parse = () => {
@@ -257,6 +282,7 @@ export default function App() {
         event.preventDefault();
         if (document.querySelector('[role="dialog"][aria-modal="true"]'))
           return;
+        revealPanel("knowledge", "knowledge-list");
         navigate("knowledge");
         setTimeout(
           () => document.getElementById("knowledge-search")?.focus(),
@@ -337,7 +363,10 @@ export default function App() {
         ? "偏好设置"
         : navigation.find((n) => n.id === view)?.label;
   return (
-    <div className="app-shell">
+    <div
+      className={`app-shell ${sidebarHidden ? "sidebar-collapsed" : ""}`}
+      style={{ "--sidebar-width": `${sidebarWidth}px` } as CSSProperties}
+    >
       {sideOpen && (
         <div className="sidebar-scrim" onClick={() => setSideOpen(false)} />
       )}
@@ -355,6 +384,7 @@ export default function App() {
           <button
             className="quick-search"
             onClick={() => {
+              revealPanel("knowledge", "knowledge-list");
               navigate("knowledge");
               setTimeout(
                 () => document.getElementById("knowledge-search")?.focus(),
@@ -432,6 +462,7 @@ export default function App() {
               aria-label="编辑个人资料"
               title="编辑名称和头像"
               onClick={() => {
+                revealPanel("settings", "profile");
                 navigate("settings");
                 requestAnimationFrame(() => {
                   document
@@ -462,9 +493,22 @@ export default function App() {
           </div>
         </div>
       </aside>
+      <SidebarResize width={sidebarWidth} onChange={setSidebarWidth} />
       <div className="main-shell">
         <header className="topbar">
           <div className="breadcrumb">
+            <button
+              className="icon-btn desktop-sidebar-toggle"
+              title={sidebarHidden ? "显示侧栏" : "隐藏侧栏"}
+              aria-label={sidebarHidden ? "显示侧栏" : "隐藏侧栏"}
+              onClick={() => setSidebarHidden(!sidebarHidden)}
+            >
+              {sidebarHidden ? (
+                <Menu size={18} />
+              ) : (
+                <PanelLeftClose size={18} />
+              )}
+            </button>
             <button
               className="icon-btn mobile-only"
               aria-label="打开侧栏"
@@ -550,76 +594,82 @@ export default function App() {
           </Suspense>
         ) : (
           <main className="page-content">
-            {view === "today" && (
-              <LearningDashboard
-                problems={projection.planned}
-                state={projection.state}
-                onOpen={openStudy}
-                navigate={navigate}
-              />
-            )}
-            {view === "knowledge" && (
-              <Knowledge
-                state={state}
-                mutate={mutate}
-                notify={notify}
-                onOpen={openKnowledge}
-              />
-            )}
-            {(view === "library" || view === "favorites") && (
-              <Library
-                problems={view === "favorites" ? projection.active : problems}
-                state={view === "favorites" ? projection.state : state}
-                onOpen={openStudy}
-                onFavorite={favorite}
-                categories={
-                  view === "favorites"
-                    ? [
-                        ...new Set([
-                          ...categories,
-                          ...projection.active.map((p) => p.category),
-                        ]),
-                      ]
-                    : categories
-                }
-                category={category}
-                setCategory={setCategory}
-                favoritesOnly={view === "favorites"}
-              />
-            )}
-            {view === "review" && (
-              <Review
-                problems={projection.planned}
-                state={projection.state}
-                onOpen={openStudy}
-              />
-            )}
-            {view === "calendar" && (
-              <Calendar
-                problems={projection.all}
-                state={projection.state}
-                onOpen={openStudy}
-              />
-            )}
-            {view === "path" && (
-              <PathView
-                problems={problems}
-                state={state}
-                categories={categories}
-                onCategory={(c) => {
-                  setCategory(c);
-                  navigate("library");
-                }}
-              />
-            )}
-            {view === "settings" && (
-              <Settings
-                state={state}
-                capabilities={capabilities}
-                mutate={mutate}
-                notify={notify}
-              />
-            )}
+            <PanelLayout key={view} id={view}>
+              {view === "today" && (
+                <LearningDashboard
+                  problems={projection.planned}
+                  state={projection.state}
+                  onOpen={openStudy}
+                  navigate={navigate}
+                  mutate={mutate}
+                  notify={notify}
+                />
+              )}
+              {view === "knowledge" && (
+                <Knowledge
+                  state={state}
+                  mutate={mutate}
+                  notify={notify}
+                  onOpen={openKnowledge}
+                />
+              )}
+              {(view === "library" || view === "favorites") && (
+                <Library
+                  problems={view === "favorites" ? projection.active : problems}
+                  state={view === "favorites" ? projection.state : state}
+                  onOpen={openStudy}
+                  onFavorite={favorite}
+                  categories={
+                    view === "favorites"
+                      ? [
+                          ...new Set([
+                            ...categories,
+                            ...projection.active.map((p) => p.category),
+                          ]),
+                        ]
+                      : categories
+                  }
+                  category={category}
+                  setCategory={setCategory}
+                  favoritesOnly={view === "favorites"}
+                />
+              )}
+              {view === "review" && (
+                <Review
+                  problems={projection.planned}
+                  state={projection.state}
+                  onOpen={openStudy}
+                />
+              )}
+              {view === "calendar" && (
+                <Calendar
+                  problems={projection.all}
+                  state={projection.state}
+                  onOpen={openStudy}
+                  mutate={mutate}
+                  notify={notify}
+                />
+              )}
+              {view === "path" && (
+                <PathView
+                  problems={problems}
+                  state={state}
+                  categories={categories}
+                  onCategory={(c) => {
+                    setCategory(c);
+                    navigate("library");
+                  }}
+                />
+              )}
+              {view === "settings" && (
+                <Settings
+                  state={state}
+                  capabilities={capabilities}
+                  mutate={mutate}
+                  notify={notify}
+                />
+              )}
+            </PanelLayout>
           </main>
         )}
         {!selected && !selectedKnowledge && (
@@ -696,7 +746,7 @@ export default function App() {
                 <h3>诚实反馈，按时复习</h3>
                 <p>
                   选择「忘记了 / 有点模糊 / 记住了 /
-                  很熟练」，系统会安排下一次复习。完成每日目标会自动打卡。
+                  很熟练」，系统会安排下一次复习。在学习日历点击签到，记录每天的坚持。
                 </p>
               </div>
             </div>
@@ -833,7 +883,11 @@ function Library({
           Python & C++
         </span>
       </PageHeading>
-      <section className="panel library-panel">
+      <section
+        className="panel library-panel"
+        data-panel-id="library"
+        data-panel-label="题库列表"
+      >
         <div className="library-toolbar">
           <label className="search-field">
             <Search size={17} />
@@ -1008,7 +1062,11 @@ function Review({
           )}
         </button>
       </PageHeading>
-      <div className="review-summary">
+      <div
+        className="review-summary"
+        data-panel-id="review-summary"
+        data-panel-label="复习概览"
+      >
         <div>
           <span>现在需要复习</span>
           <strong>
@@ -1039,7 +1097,11 @@ function Review({
         </div>
       </div>
       <div className="dashboard-columns">
-        <section className="panel">
+        <section
+          className="panel"
+          data-panel-id="review-list"
+          data-panel-label="复习列表"
+        >
           <div className="tabs-bar large-tabs">
             {["到期复习", "未来 7 天", "全部已学"].map((t) => (
               <button
@@ -1084,7 +1146,11 @@ function Review({
           )}
         </section>
         <aside>
-          <section className="panel memory-panel">
+          <section
+            className="panel memory-panel"
+            data-panel-id="memory"
+            data-panel-label="记忆曲线"
+          >
             <div className="mini-section-title">
               <span className="tint-icon">
                 <Sprout size={16} />
@@ -1126,10 +1192,14 @@ function Calendar({
   problems,
   state,
   onOpen,
+  mutate,
+  notify,
 }: {
   problems: Problem[];
   state: AppState;
   onOpen: (id: number) => void;
+  mutate: (payload: unknown) => Promise<AppState>;
+  notify: (message: string) => void;
 }) {
   const [month, setMonth] = useState(
       () => new Date(new Date().getFullYear(), new Date().getMonth(), 1),
@@ -1153,8 +1223,32 @@ function Calendar({
           累计打卡 {state.checkins.length} 天
         </span>
       </PageHeading>
+      <div className="checkin-row">
+        <div>
+          <h2>
+            {state.checkins.includes(dayKey())
+              ? "今天也留下了足迹"
+              : "新的一天，来签到吧"}
+          </h2>
+          <p>{dayKey()} · 点击签到，记录今天的坚持。</p>
+        </div>
+        <CheckInButton
+          state={state}
+          mutate={mutate}
+          notify={notify}
+          onSuccess={() => {
+            const today = new Date();
+            setMonth(new Date(today.getFullYear(), today.getMonth(), 1));
+            setSelected(dayKey(today));
+          }}
+        />
+      </div>
       <div className="calendar-layout">
-        <section className="panel calendar-panel">
+        <section
+          className="panel calendar-panel"
+          data-panel-id="calendar"
+          data-panel-label="学习日历"
+        >
           <div className="panel-heading">
             <h2>
               {month.getFullYear()} 年 {month.getMonth() + 1} 月
@@ -1221,9 +1315,9 @@ function Calendar({
               return (
                 <button
                   key={key}
-                  aria-label={`${key}，学习 ${count} 项`}
+                  aria-label={`${key}，学习 ${count} 项，${check ? "已签到" : "未签到"}`}
                   onClick={() => setSelected(key)}
-                  className={`calendar-cell ${outside ? "outside" : ""} ${selected === key ? "selected" : ""} ${key === dayKey() ? "today" : ""} ${count ? "has-activity" : ""}`}
+                  className={`calendar-cell ${outside ? "outside" : ""} ${selected === key ? "selected" : ""} ${key === dayKey() ? "today" : ""} ${count || check ? "has-activity" : ""}`}
                 >
                   <span className="calendar-day">
                     {date.getDate()}
@@ -1231,8 +1325,10 @@ function Calendar({
                   </span>
                   {count > 0 ? (
                     <span className="calendar-activity">
-                      {count} 项<small>{check ? "已打卡" : "学习中"}</small>
+                      {count} 项<small>{check ? "已签到" : "学习中"}</small>
                     </span>
+                  ) : check ? (
+                    <span className="calendar-today-label">已签到</span>
                   ) : key === dayKey() ? (
                     <span className="calendar-today-label">今天</span>
                   ) : null}
@@ -1243,7 +1339,7 @@ function Calendar({
           <div className="panel-bottom">
             <span>
               <i className="status-dot" />
-              黄色表示有学习记录
+              黄色表示学习或签到记录
             </span>
             <span>
               本月学习 {new Set(monthEvents.map((e) => e.problemId)).size} 项 ·
@@ -1253,7 +1349,11 @@ function Calendar({
             </span>
           </div>
         </section>
-        <aside className="panel calendar-detail">
+        <aside
+          className="panel calendar-detail"
+          data-panel-id="day-detail"
+          data-panel-label="当天记录"
+        >
           <div className="panel-heading">
             <div>
               <h2>
@@ -1261,7 +1361,7 @@ function Calendar({
               </h2>
               <p>
                 {state.checkins.includes(selected)
-                  ? "今日目标已完成"
+                  ? "这一天已签到"
                   : "记录属于这一天的积累"}
               </p>
             </div>
@@ -1311,7 +1411,14 @@ function Calendar({
               </div>
             </>
           ) : (
-            <Empty icon={CalendarDays} title="这一天，等待被点亮">
+            <Empty
+              icon={CalendarDays}
+              title={
+                state.checkins.includes(selected)
+                  ? "签到已记录"
+                  : "这一天，等待被点亮"
+              }
+            >
               每一次学习和复习，都会留下一枚足迹。
             </Empty>
           )}
@@ -1347,7 +1454,11 @@ function PathView({
         </div>
         <span>{categories.length} 个专题</span>
       </div>
-      <div className="path-grid">
+      <div
+        className="path-grid"
+        data-panel-id="topics"
+        data-panel-label="知识专题"
+      >
         {categories.map((cat, i) => {
           const items = problems.filter((p) => p.category === cat),
             done = items.filter((p) => state.cards[p.id]).length;
@@ -1436,18 +1547,22 @@ function Settings({
           mutate={mutate}
           notify={notify}
         />
-        <section className="panel settings-panel">
+        <section
+          className="panel settings-panel"
+          data-panel-id="preferences"
+          data-panel-label="学习偏好"
+        >
           <h2>
             <Target size={18} />
             学习偏好
           </h2>
           <div className="setting-row">
             <div>
-              <strong>每日打卡目标</strong>
-              <p>题目与知识点合计达到每日目标，自动打卡。</p>
+              <strong>每日学习目标</strong>
+              <p>题目与知识点共同累计学习进度。</p>
             </div>
             <select
-              aria-label="每日打卡目标"
+              aria-label="每日学习目标"
               value={state.settings.dailyGoal}
               onChange={(e) => setting({ dailyGoal: Number(e.target.value) })}
             >
@@ -1533,7 +1648,11 @@ function Settings({
             </select>
           </div>
         </section>
-        <section className="panel settings-panel">
+        <section
+          className="panel settings-panel"
+          data-panel-id="backup"
+          data-panel-label="数据与运行环境"
+        >
           <h2>
             <Folder size={18} />
             数据与运行环境
@@ -1597,7 +1716,11 @@ function Settings({
           </div>
           <div className="info-note">在本机执行样例测试，请运行可信代码。</div>
         </section>
-        <section className="panel settings-panel sources-panel">
+        <section
+          className="panel settings-panel sources-panel"
+          data-panel-id="about"
+          data-panel-label="关于软件"
+        >
           <h2>
             <BookOpen size={18} />
             关于这份学习工具

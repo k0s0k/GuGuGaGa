@@ -147,17 +147,27 @@ class KnowledgeTests(unittest.TestCase):
             self.store.action({"type": "solution", "problemId": 1, "language": "python", "mode": "leetcode", "solution": {"brief": "x"}})
         self.assertEqual(self.store.read(), before)
 
-    def test_shared_checkin_counts_distinct_knowledge_and_leetcode_items(self):
+    def test_knowledge_and_leetcode_ratings_do_not_check_in_until_explicit_action(self):
         self.import_one()
         self.rate()
         self.rate(event="repeat")
         self.store.action({"type": "rate", "problemId": 1, "rating": "again", "eventId": "lc1"})
         self.assertEqual(self.store.read()["checkins"], [])
         after = self.store.action({"type": "rate", "problemId": 2, "rating": "good", "eventId": "lc2"})
-        self.assertEqual(after["checkins"], [self.now.astimezone().date().isoformat()])
+        self.assertEqual(after["checkins"], [])
         self.assertEqual(after["knowledgeCards"]["raii"]["reviews"], 2)
         self.assertEqual(after["knowledgeEvents"][0]["kind"], "new")
         self.assertEqual(after["knowledgeEvents"][1]["kind"], "review")
+        checked = self.store.action({"type": "checkin"})
+        self.assertEqual(checked["checkins"], [self.now.astimezone().date().isoformat()])
+        self.assertEqual(checked["knowledgeEvents"], after["knowledgeEvents"])
+        self.assertEqual(checked["events"], after["events"])
+
+    def test_knowledge_rating_at_single_item_goal_does_not_automatically_check_in(self):
+        self.store.action({"type": "settings", "settings": {"dailyGoal": 1}})
+        self.import_one()
+        after = self.rate()
+        self.assertEqual(after["checkins"], [])
 
     def test_rating_retry_is_idempotent_and_event_ids_cannot_cross_domains(self):
         self.import_one()

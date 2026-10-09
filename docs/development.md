@@ -78,7 +78,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\setup-cpp.ps1
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-desktop.ps1
 ```
 
-构建脚本在 `.local/package-env` 准备桌面依赖，校验嵌入式 Python，输出 `release/GuGuGaGa-v2.2.1/`。`-SkipInstall` 复用打包依赖，`-SkipFrontend` 复用前端构建。发行目录包含运行环境、快捷方式脚本、知识库模板与第三方许可证。
+构建脚本在 `.local/package-env` 准备桌面依赖，校验嵌入式 Python，输出 `release/GuGuGaGa-v2.3.0/`。`-SkipInstall` 复用打包依赖，`-SkipFrontend` 复用前端构建。发行目录包含运行环境、快捷方式脚本、知识库模板与第三方许可证。
 
 ## 数据、备份与兼容
 
@@ -92,6 +92,8 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-desktop.
 
 完整备份使用版本 2 JSON，支持恢复版本 1 与版本 2 备份。导入先校验，并将当前状态备份到数据库目录的 `before-import-时间-标识.json`，再用事务写入；恢复时可重新导入该文件。知识库交换文件使用独立的 `coderecall.knowledge` 协议，详见 [知识库导入格式](knowledge-format.md)。
 
+侧边栏宽度、面板尺寸和显隐状态保存在当前浏览器或桌面窗口的 `localStorage` 中，随当前设备使用。完整数据备份继续保存学习资料、复习记录、打卡和个人设置；布局偏好独立于学习数据备份。
+
 指定数据位置：
 
 ```powershell
@@ -104,7 +106,9 @@ Git 保存源码和构建说明；本机数据、运行环境与生成产物由 
 
 调度器结合记忆稳定性与四档反馈安排间隔，估计保留率为 `R(t) = 0.9^(t/S)`。首次「有点模糊 / 记住了 / 很熟练」对应初始稳定性 0.5 / 1 / 4 天；选择「忘记了」安排 10 分钟后重学。按天间隔为 1–365 天，更高目标保留率会缩短后续间隔。
 
-到期时间按带时区的 ISO 时间存储并以 UTC 计算；日历和打卡按后端所在电脑的本地日期记录。同一内容当天计入一个完成名额，每次反馈分别更新复习进度，事件 ID 用于去重。
+到期时间按带时区的 ISO 时间存储并以 UTC 计算；日历和打卡按后端所在电脑的本地日期记录。同一内容当天计入一个每日学习目标名额，每次反馈分别更新复习进度，事件 ID 用于去重。
+
+学习目标与打卡分别记录。用户点击「签到」后，通过 `{ "type": "checkin" }` 记录今天，同一天重复提交只保存一次。打卡可以独立于学习完成情况进行，评分和调整每日目标仅更新相应学习数据。后端确定打卡日期，接口拒绝传入 `day` 字段；完整备份保留合法的独立打卡记录。
 
 ## 项目结构
 

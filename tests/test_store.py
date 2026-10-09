@@ -33,6 +33,7 @@ class StoreTests(unittest.TestCase):
 
     def test_default_goal_can_be_completed_from_new_daily_plan(self):
         state = self.store.read()
+        self.assertEqual(state["settings"]["theme"], "dark")
         self.assertEqual(state["settings"]["newPerDay"], 3)
         self.assertEqual(state["settings"]["dailyGoal"], 3)
         state["settings"]["dailyGoal"] = 30
@@ -60,22 +61,113 @@ class StoreTests(unittest.TestCase):
             self.rate(rating="easy")
         self.assertEqual(self.store.read(), first)
 
-    def test_checkin_counts_distinct_problems_not_repeated_reviews(self):
+    def test_reaching_goal_never_automatically_checks_in(self):
         self.rate()
         self.rate(event="repeat")
         self.rate(pid=2, event="two")
         self.assertEqual(self.store.read()["checkins"], [])
         state = self.rate(pid=3, event="three", rating="again")
-        self.assertEqual(state["checkins"], [self.day])
+        self.assertEqual(state["checkins"], [])
         self.assertEqual(len(state["events"]), 4)
 
-    def test_lowering_goal_checks_in_today_without_removing_existing_award(self):
+    def test_changing_goal_never_checks_in_or_removes_existing_checkin(self):
         self.rate()
         self.rate(pid=2, event="two")
         state = self.store.action({"type": "settings", "settings": {"dailyGoal": 2}})
-        self.assertEqual(state["checkins"], [self.day])
+        self.assertEqual(state["checkins"], [])
+        checked = self.store.action({"type": "checkin"})
+        self.assertEqual(checked["checkins"], [self.day])
         raised = self.store.action({"type": "settings", "settings": {"dailyGoal": 5}})
         self.assertEqual(raised["checkins"], [self.day])
+
+    def test_manual_checkin_is_idempotent_without_creating_learning_events(self):
+        before = self.store.read()
+        first = self.store.action({"type": "checkin"})
+        expected = copy.deepcopy(before)
+        expected["checkins"] = [self.day]
+        self.assertEqual(first, expected)
+        self.assertEqual(self.store.action({"type": "checkin"}), expected)
+        self.assertEqual(Store(self.path, range(1, 101)).read(), expected)
+        with patch("server.store.utc_now", return_value=self.now + timedelta(days=1)):
+            tomorrow = self.store.action({"type": "checkin"})
+        self.assertEqual(tomorrow["checkins"], [self.day, (self.now.date() + timedelta(days=1)).isoformat()])
+        self.assertEqual(tomorrow["events"], [])
+        self.assertEqual(tomorrow["knowledgeEvents"], [])
+
+    def test_manual_checkin_rejects_any_client_date_atomically(self):
+        before = self.store.read()
+        for requested in (self.day, "2020-01-01", "2099-01-01", None, 0, [], "2026-02-30"):
+            with self.subTest(day=requested), self.assertRaisesRegex(ValueError, "请勿指定日期"):
+                self.store.action({"type": "checkin", "day": requested})
+            self.assertEqual(self.store.read(), before)
+
+    def test_manual_checkin_uses_machine_local_date_at_utc_day_boundary(self):
+        class BoundaryClock(datetime):
+            def astimezone(self, tz=None):
+                return datetime(2026, 10, 5, 0, 30, tzinfo=timezone(timedelta(hours=8)))
+        utc_instant = BoundaryClock(2026, 10, 4, 16, 30, tzinfo=timezone.utc)
+        with patch("server.store.utc_now", return_value=utc_instant):
+            state = self.store.action({"type": "checkin"})
+        self.assertEqual(state["checkins"], ["2026-10-05"])
+
+    def test_parallel_manual_checkins_create_only_one_day(self):
+        stores = [Store(self.path, range(1, 101)) for _ in range(4)]
+        with ThreadPoolExecutor(max_workers=8) as pool:
+            list(pool.map(lambda i: stores[i % 4].action({"type": "checkin"}), range(24)))
+        state = self.store.read()
+        self.assertEqual(state["checkins"], [self.day])
+        self.assertEqual(state["events"], [])
+        self.assertEqual(state["knowledgeEvents"], [])
+
+    def test_backup_restores_manual_checkins_without_learning_records(self):
+        incoming = copy.deepcopy(DEFAULT_STATE)
+        incoming["checkins"] = ["2026-10-03", "2026-10-01", "2026-10-03"]
+        restored = self.store.action({"type": "import", "state": incoming})
+        self.assertEqual(restored["checkins"], ["2026-10-01", "2026-10-03"])
+        self.assertEqual(restored["events"], [])
+        self.assertEqual(restored["knowledgeEvents"], [])
+        self.assertEqual(self.store.action({"type": "import", "state": restored}), restored)
+        self.assertEqual(Store(self.path, range(1, 101)).read(), restored)
+
+    def test_existing_dark_default_migration_runs_once_and_preserves_data_and_later_preferences(self):
+        original = self.rate()
+        original = self.store.action({"type": "settings", "settings": {"theme": "light", "workspaceName": "旧的空间"}})
+        original["checkins"] = ["2026-10-01"]
+        original["notes"]["1"] = "旧笔记"
+        with self.store.connect() as db:
+            db.execute("UPDATE state SET data=? WHERE id=1", (json.dumps(original),))
+            db.execute("DROP TABLE app_migrations")
+        upgraded = Store(self.path, range(1, 101))
+        expected = copy.deepcopy(original)
+        expected["settings"]["theme"] = "dark"
+        self.assertEqual(upgraded.read(), expected)
+        selected = upgraded.action({"type": "settings", "settings": {"theme": "light"}})
+        self.assertEqual(Store(self.path, range(1, 101)).read(), selected)
+        upgraded.action({"type": "settings", "settings": {"theme": "dark"}})
+        imported = upgraded.action({"type": "import", "state": original})
+        self.assertEqual(Store(self.path, range(1, 101)).read(), imported)
+        self.assertEqual(imported["settings"]["theme"], "light")
+        with upgraded.connect() as db:
+            count = db.execute("SELECT COUNT(*) FROM app_migrations WHERE name='default-dark-v2.3'").fetchone()[0]
+        self.assertEqual(count, 1)
+
+    def test_v1_upgrade_keeps_historical_checkins_and_original_backup(self):
+        original = copy.deepcopy(DEFAULT_STATE)
+        original["version"] = 1
+        original["settings"]["theme"] = "light"
+        original["checkins"] = ["2026-10-01"]
+        original["notes"]["1"] = "第一版笔记"
+        with self.store.connect() as db:
+            db.execute("UPDATE state SET data=? WHERE id=1", (json.dumps(original),))
+            db.execute("DROP TABLE app_migrations")
+        upgraded = Store(self.path, range(1, 101)).read()
+        self.assertEqual(upgraded["version"], 2)
+        self.assertEqual(upgraded["settings"]["theme"], "dark")
+        self.assertEqual(upgraded["checkins"], original["checkins"])
+        self.assertEqual(upgraded["notes"], original["notes"])
+        backups = list(self.path.parent.glob("before-v2-upgrade-*.json"))
+        self.assertEqual(len(backups), 1)
+        self.assertEqual(json.loads(backups[0].read_text(encoding="utf-8")), original)
 
     def test_local_day_is_authoritative_with_one_day_clock_tolerance(self):
         for offset in (-1, 1):
@@ -117,7 +209,7 @@ class StoreTests(unittest.TestCase):
         bad = copy.deepcopy(good); bad["events"][0]["seconds"] = -1; variants.append(bad)
         bad = copy.deepcopy(good); bad["notes"]["999"] = "不存在"; variants.append(bad)
         bad = copy.deepcopy(good); bad["drafts"]["1:java:leetcode"] = "bad"; variants.append(bad)
-        bad = copy.deepcopy(good); bad["checkins"] = ["2026-10-01"]; variants.append(bad)
+        bad = copy.deepcopy(good); bad["checkins"] = ["2026-02-30"]; variants.append(bad)
         bad = copy.deepcopy(good); bad["settings"]["retention"] = float("inf"); variants.append(bad)
         for incoming in variants:
             with self.subTest(incoming=incoming), self.assertRaises(ValueError):

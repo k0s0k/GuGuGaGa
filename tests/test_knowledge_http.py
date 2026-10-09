@@ -178,7 +178,7 @@ class KnowledgeHttpTests(unittest.TestCase):
         self.assertEqual(status, 400, failure)
         self.assertEqual(self.store.read(), reset)
 
-    def test_knowledge_and_algorithm_reviews_share_daily_checkin(self):
+    def test_knowledge_and_algorithm_reviews_require_explicit_daily_checkin(self):
         self.action({"type": "settings", "settings": {"dailyGoal": 2}})
         self.action({"type": "knowledge-import", "document": self.document()})
         first = self.action({"type": "knowledge-rate", "itemId": "http-card", "rating": "good",
@@ -188,7 +188,23 @@ class KnowledgeHttpTests(unittest.TestCase):
                                 "eventId": "algorithm-feedback", "seconds": 60})
         self.assertEqual(len(complete["knowledgeCards"]), 1)
         self.assertEqual(len(complete["cards"]), 1)
-        self.assertEqual(complete["checkins"], [complete["knowledgeEvents"][0]["day"]])
+        self.assertEqual(complete["checkins"], [])
+        checked = self.action({"type": "checkin"})
+        self.assertEqual(checked["checkins"], [complete["knowledgeEvents"][0]["day"]])
+        self.assertEqual(self.action({"type": "checkin"}), checked)
+        self.assertEqual(checked["knowledgeEvents"], complete["knowledgeEvents"])
+        self.assertEqual(checked["events"], complete["events"])
+
+    def test_checkin_without_learning_is_saved_and_client_dates_are_rejected(self):
+        state = self.action({"type": "checkin"})
+        self.assertEqual(len(state["checkins"]), 1)
+        self.assertEqual(state["events"], [])
+        self.assertEqual(state["knowledgeEvents"], [])
+        for day in (state["checkins"][0], "2020-01-01", None):
+            status, failure = self.post("/api/action", {"type": "checkin", "day": day})
+            self.assertEqual(status, 400, failure)
+            self.assertIn("error", failure)
+            self.assertEqual(self.store.read(), state)
 
     def test_v1_backup_import_upgrades_copy_and_backs_up_current_v2_state(self):
         old_state = self.action({"type": "knowledge-import", "document": self.document()})

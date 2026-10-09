@@ -1,4 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type {
+  CSSProperties,
+  KeyboardEvent as ReactKeyboardEvent,
+  PointerEvent,
+} from "react";
+import type { EditorView } from "@codemirror/view";
 import CodeMirror from "@uiw/react-codemirror";
 import { python } from "@codemirror/lang-python";
 import { cpp } from "@codemirror/lang-cpp";
@@ -22,6 +28,7 @@ import {
   Play,
   RotateCcw,
   Save,
+  SlidersHorizontal,
   Sparkles,
   Star,
   Terminal,
@@ -50,6 +57,135 @@ import {
 } from "./StudyFeedback";
 import type { ConfirmedStudy } from "./StudyFeedback";
 import "./workspace-upgrade.css";
+import "./workspace-layout.css";
+
+const workspaceLayoutKey = "gugugaga-workspace-layout-v1";
+const defaultWorkspaceLayout = {
+  question: true,
+  editor: true,
+  console: true,
+  progress: true,
+  questionShare: 44,
+  codeShare: 62,
+};
+type WorkspaceLayout = typeof defaultWorkspaceLayout;
+const boundedShare = (value: number, min: number, max: number) =>
+  Math.min(max, Math.max(min, value));
+
+function readWorkspaceLayout(): WorkspaceLayout {
+  try {
+    const saved: unknown = JSON.parse(
+      localStorage.getItem(workspaceLayoutKey) || "null",
+    );
+    if (!saved || typeof saved !== "object")
+      return { ...defaultWorkspaceLayout };
+    const data = saved as Record<string, unknown>;
+    const layout = { ...defaultWorkspaceLayout };
+    for (const name of ["question", "editor", "console", "progress"] as const)
+      if (typeof data[name] === "boolean") layout[name] = data[name];
+    for (const name of ["questionShare", "codeShare"] as const)
+      if (typeof data[name] === "number" && Number.isFinite(data[name]))
+        layout[name] = boundedShare(
+          data[name],
+          name === "questionShare" ? 30 : 35,
+          name === "questionShare" ? 65 : 80,
+        );
+    if (!layout.question && !layout.editor) layout.editor = true;
+    return layout;
+  } catch {
+    return { ...defaultWorkspaceLayout };
+  }
+}
+
+function WorkspaceSeparator({
+  direction,
+  value,
+  onChange,
+}: {
+  direction: "columns" | "rows";
+  value: number;
+  onChange: (value: number) => void;
+}) {
+  const dragging = useRef<{
+    id: number;
+    start: number;
+    value: number;
+    size: number;
+  } | null>(null);
+  const columns = direction === "columns";
+  const min = columns ? 30 : 35;
+  const max = columns ? 65 : 80;
+  const update = (next: number) =>
+    onChange(Math.round(boundedShare(next, min, max)));
+  const move = (event: PointerEvent<HTMLDivElement>) => {
+    const drag = dragging.current;
+    if (!drag || event.pointerId !== drag.id) return;
+    update(
+      drag.value +
+        (((columns ? event.clientX : event.clientY) - drag.start) / drag.size) *
+          100,
+    );
+  };
+  const finish = (event: PointerEvent<HTMLDivElement>) => {
+    if (dragging.current?.id !== event.pointerId) return;
+    dragging.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId))
+      event.currentTarget.releasePointerCapture(event.pointerId);
+  };
+  const keyboard = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    const back = columns ? "ArrowLeft" : "ArrowUp";
+    const forward = columns ? "ArrowRight" : "ArrowDown";
+    if (![back, forward, "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    update(
+      event.key === "Home"
+        ? min
+        : event.key === "End"
+          ? max
+          : value + (event.key === back ? -1 : 1) * (event.shiftKey ? 10 : 2),
+    );
+  };
+  return (
+    <div
+      className={`workspace-resizer ${direction}`}
+      role="separator"
+      tabIndex={0}
+      aria-label={columns ? "调整题目区与代码区宽度" : "调整代码区与运行区高度"}
+      aria-orientation={columns ? "vertical" : "horizontal"}
+      aria-valuemin={min}
+      aria-valuemax={max}
+      aria-valuenow={value}
+      aria-valuetext={`${columns ? "题目区" : "代码区"}占 ${value}%`}
+      title={
+        columns
+          ? "拖动调整宽度，或使用左右方向键"
+          : "拖动调整高度，或使用上下方向键"
+      }
+      onKeyDown={keyboard}
+      onPointerDown={(event) => {
+        if (event.button !== 0) return;
+        event.preventDefault();
+        const rect = event.currentTarget.parentElement!.getBoundingClientRect();
+        dragging.current = {
+          id: event.pointerId,
+          start: columns ? event.clientX : event.clientY,
+          value,
+          size: Math.max(1, (columns ? rect.width : rect.height) - 10),
+        };
+        event.currentTarget.focus();
+        event.currentTarget.setPointerCapture(event.pointerId);
+      }}
+      onPointerMove={move}
+      onPointerUp={finish}
+      onPointerCancel={finish}
+      onLostPointerCapture={() => {
+        dragging.current = null;
+      }}
+    >
+      <span />
+    </div>
+  );
+}
 
 interface Props {
   id: number;
@@ -89,8 +225,32 @@ export default function Workspace({
     [stdin, setStdin] = useState(""),
     [rating, setRating] = useState<Rating | null>(null),
     [ratingBusy, setRatingBusy] = useState(false),
-    [confirmReset, setConfirmReset] = useState(false),
-    [expanded, setExpanded] = useState(false);
+    [confirmReset, setConfirmReset] = useState(false);
+  const [layout, setLayout] = useState(readWorkspaceLayout);
+  const [narrowLayout, setNarrowLayout] = useState(false);
+  const workspaceContainer = useRef<HTMLDivElement>(null);
+  const answerEditor = useRef<EditorView | null>(null);
+  useEffect(() => {
+    const node = workspaceContainer.current;
+    if (!node) return;
+    const measure = () =>
+      setNarrowLayout(node.getBoundingClientRect().width < 600);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [detail]);
+  useEffect(() => {
+    try {
+      localStorage.setItem(workspaceLayoutKey, JSON.stringify(layout));
+    } catch {
+      /* Layout remains usable when storage is unavailable. */
+    }
+    const frame = requestAnimationFrame(() =>
+      answerEditor.current?.requestMeasure(),
+    );
+    return () => cancelAnimationFrame(frame);
+  }, [layout, narrowLayout]);
   const [feedback, setFeedback] = useState<ConfirmedStudy | null>(null),
     [ratingError, setRatingError] = useState("");
   const draftTimer = useRef<ReturnType<typeof setTimeout> | null>(null),
@@ -247,6 +407,7 @@ export default function Workspace({
     if (runningRef.current) return;
     runningRef.current = true;
     setRunning(true);
+    setLayout((current) => ({ ...current, editor: true, console: true }));
     setConsoleTab("运行结果");
     setResult(null);
     setCaseIndex(0);
@@ -338,7 +499,20 @@ export default function Workspace({
     theme = state.settings.theme === "dark" ? "dark" : "light",
     currentResult = result?.cases[caseIndex];
   return (
-    <div className={"workspace " + (expanded ? "editor-expanded" : "")}>
+    <div
+      ref={workspaceContainer}
+      className={
+        "workspace customizable-workspace" + (narrowLayout ? " is-stacked" : "")
+      }
+      style={
+        {
+          "--workspace-question-share": `${layout.questionShare}fr`,
+          "--workspace-editor-share": `${100 - layout.questionShare}fr`,
+          "--workspace-code-share": `${layout.codeShare}fr`,
+          "--workspace-console-share": `${100 - layout.codeShare}fr`,
+        } as CSSProperties
+      }
+    >
       <div className="workspace-heading">
         <div>
           <button className="icon-btn" title="返回" onClick={onBack}>
@@ -383,9 +557,61 @@ export default function Workspace({
           </button>
         </div>
       </div>
-      <StudyProgress state={state} />
-      <div className="workspace-split">
-        <section className="question-pane">
+      <div className="workspace-layout-toolbar" aria-label="工作区布局">
+        <span>
+          <SlidersHorizontal size={15} />
+          布局
+        </span>
+        {(
+          [
+            ["question", "题目区"],
+            ["editor", "代码区"],
+            ["console", "运行区"],
+            ["progress", "学习进度"],
+          ] as const
+        ).map(([name, label]) => (
+          <button
+            key={name}
+            aria-pressed={layout[name] && (name !== "console" || layout.editor)}
+            disabled={
+              (name === "question" && layout.question && !layout.editor) ||
+              (name === "editor" && layout.editor && !layout.question)
+            }
+            onClick={() =>
+              setLayout((current) =>
+                name === "console" && !current.editor
+                  ? { ...current, editor: true, console: true }
+                  : { ...current, [name]: !current[name] },
+              )
+            }
+          >
+            {label}
+          </button>
+        ))}
+        <button
+          className="workspace-layout-reset"
+          onClick={() => setLayout({ ...defaultWorkspaceLayout })}
+        >
+          <RotateCcw size={13} />
+          恢复布局
+        </button>
+      </div>
+      <div className="workspace-progress-panel" hidden={!layout.progress}>
+        <StudyProgress state={state} />
+      </div>
+      <div
+        className={
+          "workspace-split " +
+          (layout.question && layout.editor
+            ? "has-both-panels"
+            : "single-panel")
+        }
+      >
+        <section
+          className="question-pane"
+          hidden={!layout.question}
+          aria-label="题目、题解与笔记"
+        >
           <div className="workspace-tabs">
             {[
               { label: "题目", icon: BookOpen },
@@ -622,7 +848,20 @@ export default function Workspace({
             )}
           </div>
         </section>
-        <section className="editor-pane">
+        {layout.question && layout.editor && (
+          <WorkspaceSeparator
+            direction="columns"
+            value={layout.questionShare}
+            onChange={(value) =>
+              setLayout((current) => ({ ...current, questionShare: value }))
+            }
+          />
+        )}
+        <section
+          className="editor-pane"
+          hidden={!layout.editor}
+          aria-label="代码与运行工作区"
+        >
           <div className="editor-toolbar">
             <div className="editor-selects">
               <label>
@@ -674,8 +913,14 @@ export default function Workspace({
               </button>
               <button
                 className="icon-btn"
-                title={expanded ? "恢复分栏" : "展开编辑器"}
-                onClick={() => setExpanded(!expanded)}
+                title={!layout.question ? "恢复分栏" : "展开编辑器"}
+                onClick={() =>
+                  setLayout((current) => ({
+                    ...current,
+                    editor: true,
+                    question: !current.question,
+                  }))
+                }
               >
                 <Maximize2 size={15} />
               </button>
@@ -691,232 +936,263 @@ export default function Workspace({
                 : "包含 main / 标准输入输出的完整程序"}
             </span>
           </div>
-          <div className="code-editor">
-            <CodeMirror
-              value={code}
-              height="100%"
-              extensions={editorExtensions}
-              indentWithTab={false}
-              theme={theme}
-              onChange={updateCode}
-              basicSetup={{
-                lineNumbers: true,
-                foldGutter: true,
-                autocompletion: false,
-                completionKeymap: false,
-                highlightActiveLine: true,
-                bracketMatching: true,
-              }}
-            />
-          </div>
-          <div className="editor-keyboard-hint">
-            Enter 换行并缩进 · Tab 接受补全 / 缩进 · Shift + Tab 取消缩进 · Ctrl
-            + Space 补全 · 4 空格
-          </div>
-          <div className="editor-status">
-            <span>
-              {language === "python"
-                ? `Python ${capabilities.python.version}`
-                : "C++ 17"}
-              <span className="text-dot">·</span>UTF-8
-            </span>
-            <span>
-              {code.split("\n").length} 行<span className="text-dot">·</span>
-              {mode === "leetcode"
-                ? "节点结构与常用导入已提供"
-                : "标准输入 / 标准输出"}
-            </span>
-          </div>
-          <div className="console-pane">
-            <div className="console-tabs">
-              <div>
-                {["测试用例", "运行结果"].map((t) => (
-                  <button
-                    className={consoleTab === t ? "selected" : ""}
-                    key={t}
-                    onClick={() => setConsoleTab(t)}
-                  >
-                    {t === "测试用例" ? (
-                      <Terminal size={14} />
-                    ) : (
-                      <CircleCheck size={14} />
-                    )}{" "}
-                    {t}
-                    {t === "运行结果" && result && (
-                      <i
-                        className={
-                          result.status === "passed"
-                            ? "result-dot passed"
-                            : "result-dot"
-                        }
-                      />
-                    )}
-                  </button>
-                ))}
+          <div
+            className={
+              "answer-output-split " +
+              (layout.console ? "with-console" : "without-console")
+            }
+          >
+            <div className="answer-editor-area">
+              <div className="code-editor">
+                <CodeMirror
+                  value={code}
+                  height="100%"
+                  minHeight="0"
+                  onCreateEditor={(view) => {
+                    answerEditor.current = view;
+                  }}
+                  extensions={editorExtensions}
+                  indentWithTab={false}
+                  theme={theme}
+                  onChange={updateCode}
+                  basicSetup={{
+                    lineNumbers: true,
+                    foldGutter: true,
+                    autocompletion: false,
+                    completionKeymap: false,
+                    highlightActiveLine: true,
+                    bracketMatching: true,
+                  }}
+                />
               </div>
-              <button
-                className="run-button"
-                disabled={running}
-                onClick={() => void run()}
-              >
-                {running ? (
-                  <LoaderCircle className="spin" size={14} />
-                ) : (
-                  <Play size={14} fill="currentColor" />
-                )}
-                {running ? "运行中…" : "运行代码"}
-                <kbd>⌃ ↵</kbd>
-              </button>
+              <div className="editor-keyboard-hint">
+                Enter 换行并缩进 · Tab 接受补全 / 缩进 · Shift + Tab 取消缩进 ·
+                Ctrl + Space 补全 · 4 空格
+              </div>
+              <div className="editor-status">
+                <span>
+                  {language === "python"
+                    ? `Python ${capabilities.python.version}`
+                    : "C++ 17"}
+                  <span className="text-dot">·</span>UTF-8
+                </span>
+                <span>
+                  {code.split("\n").length} 行
+                  <span className="text-dot">·</span>
+                  {mode === "leetcode"
+                    ? "节点结构与常用导入已提供"
+                    : "标准输入 / 标准输出"}
+                </span>
+              </div>
             </div>
-            <div className="console-content">
-              {consoleTab === "测试用例" ? (
-                <>
-                  <div className="case-tabs">
-                    {detail.examples.map((_, i) => (
-                      <button
-                        className={!custom && caseIndex === i ? "selected" : ""}
-                        key={i}
-                        onClick={() => {
-                          setCustom(false);
-                          setCaseIndex(i);
-                        }}
-                      >
-                        样例 {i + 1}
-                      </button>
-                    ))}
+            {layout.console && (
+              <WorkspaceSeparator
+                direction="rows"
+                value={layout.codeShare}
+                onChange={(value) =>
+                  setLayout((current) => ({ ...current, codeShare: value }))
+                }
+              />
+            )}
+            <div className="console-pane" hidden={!layout.console}>
+              <div className="console-tabs">
+                <div>
+                  {["测试用例", "运行结果"].map((t) => (
                     <button
-                      className={custom ? "selected" : ""}
-                      onClick={() => setCustom(true)}
+                      className={consoleTab === t ? "selected" : ""}
+                      key={t}
+                      onClick={() => setConsoleTab(t)}
                     >
-                      自定义输入
+                      {t === "测试用例" ? (
+                        <Terminal size={14} />
+                      ) : (
+                        <CircleCheck size={14} />
+                      )}{" "}
+                      {t}
+                      {t === "运行结果" && result && (
+                        <i
+                          className={
+                            result.status === "passed"
+                              ? "result-dot passed"
+                              : "result-dot"
+                          }
+                        />
+                      )}
                     </button>
-                  </div>
-                  {custom ? (
-                    <div className="custom-input">
-                      <p>
-                        按左侧 ACM 输入约定填写标准输入，运行后查看输出结果。
-                      </p>
-                      <textarea
-                        aria-label="自定义标准输入"
-                        value={stdin}
-                        maxLength={20000}
-                        onChange={(e) => setStdin(e.target.value)}
-                      />
+                  ))}
+                </div>
+                <button
+                  className="run-button"
+                  disabled={running}
+                  onClick={() => void run()}
+                >
+                  {running ? (
+                    <LoaderCircle className="spin" size={14} />
+                  ) : (
+                    <Play size={14} fill="currentColor" />
+                  )}
+                  {running ? "运行中…" : "运行代码"}
+                  <kbd>⌃ ↵</kbd>
+                </button>
+              </div>
+              <div className="console-content">
+                {consoleTab === "测试用例" ? (
+                  <>
+                    <div className="case-tabs">
+                      {detail.examples.map((_, i) => (
+                        <button
+                          className={
+                            !custom && caseIndex === i ? "selected" : ""
+                          }
+                          key={i}
+                          onClick={() => {
+                            setCustom(false);
+                            setCaseIndex(i);
+                          }}
+                        >
+                          样例 {i + 1}
+                        </button>
+                      ))}
                       <button
-                        className="text-button"
-                        onClick={() => {
-                          setTab("题目");
-                          switchMode("acm");
-                        }}
+                        className={custom ? "selected" : ""}
+                        onClick={() => setCustom(true)}
                       >
-                        查看输入约定 <ArrowRight size={13} />
+                        自定义输入
                       </button>
                     </div>
-                  ) : (
-                    <div className="test-preview">
-                      <div>
-                        <label>输入</label>
-                        <pre>
-                          {
-                            detail.examples[
-                              Math.min(caseIndex, detail.examples.length - 1)
-                            ]?.stdin
-                          }
-                        </pre>
+                    {custom ? (
+                      <div className="custom-input">
+                        <p>
+                          按左侧 ACM 输入约定填写标准输入，运行后查看输出结果。
+                        </p>
+                        <textarea
+                          aria-label="自定义标准输入"
+                          value={stdin}
+                          maxLength={20000}
+                          onChange={(e) => setStdin(e.target.value)}
+                        />
+                        <button
+                          className="text-button"
+                          onClick={() => {
+                            setTab("题目");
+                            switchMode("acm");
+                          }}
+                        >
+                          查看输入约定 <ArrowRight size={13} />
+                        </button>
                       </div>
-                      <div>
-                        <label>期望输出</label>
-                        <pre>
-                          {JSON.stringify(
-                            detail.examples[
-                              Math.min(caseIndex, detail.examples.length - 1)
-                            ]?.output,
-                          )}
-                        </pre>
-                      </div>
-                    </div>
-                  )}
-                </>
-              ) : running ? (
-                <div className="console-empty">
-                  <LoaderCircle className="spin" size={20} />
-                  <p>
-                    {language === "cpp"
-                      ? "正在编译并运行本地样例…"
-                      : "正在运行本地样例…"}
-                  </p>
-                </div>
-              ) : result ? (
-                <>
-                  <div
-                    className={
-                      "result-banner " +
-                      (["passed", "executed"].includes(result.status)
-                        ? "success"
-                        : "failure")
-                    }
-                  >
-                    {["passed", "executed"].includes(result.status) ? (
-                      <CircleCheck size={17} />
                     ) : (
-                      <Terminal size={17} />
-                    )}
-                    <span>{result.message}</span>
-                    {currentResult && (
-                      <small>{currentResult.elapsedMs} ms</small>
-                    )}
-                  </div>
-                  {result.cases.length > 0 && (
-                    <>
-                      <div className="case-tabs">
-                        {result.cases.map((c, i) => (
-                          <button
-                            key={i}
-                            className={caseIndex === i ? "selected" : ""}
-                            onClick={() => setCaseIndex(i)}
-                          >
-                            {c.passed === true ? (
-                              <Check size={12} />
-                            ) : c.error || c.passed === false ? (
-                              <X size={12} />
-                            ) : null}
-                            用例 {i + 1}
-                          </button>
-                        ))}
-                      </div>
-                      {currentResult && (
-                        <div className="result-content">
-                          {currentResult.error && (
-                            <p className="error-text">{currentResult.error}</p>
-                          )}
-                          {currentResult.stderr && (
-                            <pre className="stderr">{currentResult.stderr}</pre>
-                          )}
-                          <label>实际输出</label>
-                          <pre>{currentResult.stdout || "（无输出）"}</pre>
-                          {currentResult.passed !== null && (
-                            <>
-                              <label>期望输出</label>
-                              <pre>
-                                {JSON.stringify(currentResult.expected)}
-                              </pre>
-                            </>
-                          )}
+                      <div className="test-preview">
+                        <div>
+                          <label>输入</label>
+                          <pre>
+                            {
+                              detail.examples[
+                                Math.min(caseIndex, detail.examples.length - 1)
+                              ]?.stdin
+                            }
+                          </pre>
                         </div>
+                        <div>
+                          <label>期望输出</label>
+                          <pre>
+                            {JSON.stringify(
+                              detail.examples[
+                                Math.min(caseIndex, detail.examples.length - 1)
+                              ]?.output,
+                            )}
+                          </pre>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : running ? (
+                  <div className="console-empty">
+                    <LoaderCircle className="spin" size={20} />
+                    <p>
+                      {language === "cpp"
+                        ? "正在编译并运行本地样例…"
+                        : "正在运行本地样例…"}
+                    </p>
+                  </div>
+                ) : result ? (
+                  <>
+                    <div
+                      className={
+                        "result-banner " +
+                        (["passed", "executed"].includes(result.status)
+                          ? "success"
+                          : "failure")
+                      }
+                    >
+                      {["passed", "executed"].includes(result.status) ? (
+                        <CircleCheck size={17} />
+                      ) : (
+                        <Terminal size={17} />
                       )}
-                    </>
-                  )}
-                </>
-              ) : (
-                <div className="console-empty">
-                  <Terminal size={23} />
-                  <p>写下思路，运行第一组样例。</p>
-                  <span>Ctrl / ⌘ + Enter 快速运行</span>
-                </div>
-              )}
+                      <span>{result.message}</span>
+                      {currentResult && (
+                        <small>{currentResult.elapsedMs} ms</small>
+                      )}
+                    </div>
+                    {result.cases.length > 0 && (
+                      <>
+                        <div className="case-tabs">
+                          {result.cases.map((c, i) => (
+                            <button
+                              key={i}
+                              className={caseIndex === i ? "selected" : ""}
+                              onClick={() => setCaseIndex(i)}
+                            >
+                              {c.passed === true ? (
+                                <Check size={12} />
+                              ) : c.error || c.passed === false ? (
+                                <X size={12} />
+                              ) : null}
+                              用例 {i + 1}
+                            </button>
+                          ))}
+                        </div>
+                        {currentResult && (
+                          <div className="result-content">
+                            {currentResult.error && (
+                              <p className="error-text">
+                                {currentResult.error}
+                              </p>
+                            )}
+                            {currentResult.stderr && (
+                              <pre className="stderr">
+                                {currentResult.stderr}
+                              </pre>
+                            )}
+                            <label>实际输出</label>
+                            <pre>{currentResult.stdout || "（无输出）"}</pre>
+                            {currentResult.passed !== null && (
+                              <>
+                                <label>期望输出</label>
+                                <pre>
+                                  {JSON.stringify(currentResult.expected)}
+                                </pre>
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </>
+                ) : (
+                  <div className="console-empty">
+                    <Terminal size={23} />
+                    <p>写下思路，运行第一组样例。</p>
+                    <span>Ctrl / ⌘ + Enter 快速运行</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-          <div className="runner-footnote">本地样例测试 · 请运行可信代码</div>
+          <div className="runner-footnote" hidden={!layout.console}>
+            本地样例测试 · 请运行可信代码
+          </div>
         </section>
       </div>
       {confirmReset && (

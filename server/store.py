@@ -63,7 +63,7 @@ def avatar_data_url(value):
 
 DEFAULT_STATE = {
     "version": 2,
-    "settings": {"dailyGoal": 3, "newPerDay": 3, "language": "python", "mode": "leetcode", "retention": 0.9, "theme": "light", "includeHot100": True, "avatar": "", "workspaceName": "我的工作空间"},
+    "settings": {"dailyGoal": 3, "newPerDay": 3, "language": "python", "mode": "leetcode", "retention": 0.9, "theme": "dark", "includeHot100": True, "avatar": "", "workspaceName": "我的工作空间"},
     "cards": {}, "notes": {}, "favorites": [], "drafts": {}, "events": [], "checkins": [],
     "solutions": {}, "decks": {}, "knowledge": {}, "knowledgeCards": {},
     "knowledgeNotes": {}, "knowledgeFavorites": [], "knowledgeEvents": [],
@@ -87,10 +87,19 @@ class Store:
                 upgraded = self.validate_import(state)
                 self._backup(state, "before-v2-upgrade")
                 db.execute("UPDATE state SET data=? WHERE id=1", (json.dumps(upgraded, ensure_ascii=False, allow_nan=False),))
+                state = upgraded
             elif any(key not in state.get("settings", {}) for key in ("includeHot100", "avatar", "workspaceName")):
                 # Additive v2 preference: retain all existing study data unchanged.
                 state["settings"] = self.settings(state.get("settings", {}))
                 db.execute("UPDATE state SET data=? WHERE id=1", (json.dumps(state, ensure_ascii=False, allow_nan=False),))
+            # Apply the new default once; later explicit choices and imported
+            # preferences remain untouched, including on subsequent launches.
+            db.execute("CREATE TABLE IF NOT EXISTS app_migrations (name TEXT PRIMARY KEY)")
+            migration = "default-dark-v2.3"
+            if not db.execute("SELECT 1 FROM app_migrations WHERE name=?", (migration,)).fetchone():
+                state["settings"]["theme"] = "dark"
+                db.execute("UPDATE state SET data=? WHERE id=1", (json.dumps(state, ensure_ascii=False, allow_nan=False),))
+                db.execute("INSERT INTO app_migrations (name) VALUES (?)", (migration,))
 
     @contextmanager
     def connect(self):
@@ -221,9 +230,6 @@ class Store:
         state["checkins"] = sorted(set(self._day(day) for day in value.get("checkins", [])))
         if value["version"] == 2:
             self._validate_knowledge_state(value, state)
-        event_days = {event["day"] for event in state["events"] + state["knowledgeEvents"]}
-        if any(day not in event_days for day in state["checkins"]):
-            raise ValueError("打卡日期缺少对应学习记录")
         return state
 
     def _solution_key(self, key):
@@ -373,17 +379,8 @@ class Store:
                 state["knowledgeCards"][item_id] = schedule(old, rating, state["settings"]["retention"], now)
                 state["knowledgeEvents"].append({"eventId": event_id, "itemId": item_id, "day": day, "rating": rating,
                                                  "kind": "review" if old else "new", "time": timestamp, "seconds": seconds})
-                self._checkin(state, day)
         else:
             raise ValueError("不支持的知识库操作")
-
-    @staticmethod
-    def _checkin(state, day):
-        completed = len({event["problemId"] for event in state["events"] if event["day"] == day})
-        completed += len({event["itemId"] for event in state["knowledgeEvents"] if event["day"] == day})
-        if completed >= state["settings"]["dailyGoal"] and day not in state["checkins"]:
-            state["checkins"].append(day)
-            state["checkins"].sort()
 
     def _backup(self, state, prefix="before-import"):
         stem = prefix + "-" + utc_now().strftime("%Y%m%d-%H%M%S-%f") + "-" + uuid4().hex[:8]
@@ -426,7 +423,13 @@ class Store:
                     raise ValueError("学习时长必须为 0–14400 的整数秒")
                 state["cards"][pid] = schedule(old, rating, state["settings"]["retention"], now)
                 state["events"].append({"eventId": event_id, "problemId": int(pid), "day": day, "rating": rating, "kind": "review" if old else "new", "time": now.isoformat(), "seconds": seconds})
-                self._checkin(state, day)
+            elif kind == "checkin":
+                if "day" in payload:
+                    raise ValueError("签到只记录本机今日日期，请勿指定日期")
+                day = self.local_day(None, utc_now())
+                if day not in state["checkins"]:
+                    state["checkins"].append(day)
+                    state["checkins"].sort()
             elif kind == "favorite":
                 number = int(pid)
                 if number in state["favorites"]:
@@ -456,7 +459,6 @@ class Store:
                 if not isinstance(updates, dict):
                     raise ValueError("设置格式错误")
                 state["settings"] = self.settings({**state["settings"], **updates})
-                self._checkin(state, self.local_day(None, utc_now()))
             elif kind == "import":
                 replacement = self.validate_import(payload.get("state"))
                 self._backup(state)

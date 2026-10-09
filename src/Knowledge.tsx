@@ -31,6 +31,7 @@ import type {
 import { splitDocument, validateDocument } from "./api";
 import { dayKey, download, dueLabel, isDue, ratingLabels } from "./utils";
 import Markdown from "./Markdown";
+import PanelLayout from "./PanelLayout";
 import { knowledgeSamples } from "./knowledgeSamples";
 import {
   confirmedStudy,
@@ -944,7 +945,11 @@ export default function Knowledge({
           </button>
         </div>
       </div>
-      <div className="knowledge-stats">
+      <div
+        className="knowledge-stats"
+        data-panel-id="knowledge-stats"
+        data-panel-label="知识库概览"
+      >
         <span>
           <Layers size={17} />
           <b>{decks.length}</b> 知识库
@@ -966,7 +971,11 @@ export default function Knowledge({
         </button>
       </div>
       {!decks.length && (
-        <section className="panel knowledge-welcome">
+        <section
+          className="panel knowledge-welcome"
+          data-panel-id="welcome"
+          data-panel-label="开始使用"
+        >
           <span className="tint-icon">
             <BookOpen size={23} />
           </span>
@@ -993,7 +1002,11 @@ export default function Knowledge({
         </section>
       )}
       {decks.length > 0 && (
-        <div className="knowledge-decks">
+        <div
+          className="knowledge-decks"
+          data-panel-id="decks"
+          data-panel-label="知识库分类"
+        >
           <button
             className={`knowledge-deck all ${deckId === "all" ? "selected" : ""}`}
             onClick={() => setDeckId("all")}
@@ -1048,7 +1061,11 @@ export default function Knowledge({
           })}
         </div>
       )}
-      <section className="panel knowledge-library">
+      <section
+        className="panel knowledge-library"
+        data-panel-id="knowledge-list"
+        data-panel-label="知识点列表"
+      >
         <div className="knowledge-toolbar">
           <label className="knowledge-search">
             <Search size={16} />
@@ -1316,192 +1333,205 @@ export function KnowledgeStudy({
   );
   return (
     <div className="knowledge-study">
-      <div className="knowledge-study-nav">
-        <button className="text-button" onClick={onBack}>
-          <ArrowLeft size={16} />
-          返回知识库
-        </button>
-        <span>{state.decks[item.deckId]?.title}</span>
-        <div>
-          <button className="secondary" onClick={() => setEdit(true)}>
-            <Pencil size={14} />
-            编辑知识点
+      <PanelLayout id="knowledge-study">
+        <div className="knowledge-study-nav">
+          <button className="text-button" onClick={onBack}>
+            <ArrowLeft size={16} />
+            返回知识库
           </button>
-          <button
-            className="icon-btn"
-            title={item.archived ? "恢复知识点" : "归档知识点"}
-            disabled={busy}
-            onClick={async () => {
-              if (
-                !item.archived &&
-                !confirm("归档后暂停该知识点的复习，学习记录会保留。继续？")
-              )
-                return;
-              try {
-                await mutate({
-                  type: "knowledge-archive",
-                  itemId: id,
-                  archived: !item.archived,
-                });
-                notify(item.archived ? "知识点已恢复" : "知识点已归档");
-              } catch {
-                /* mutate reports failure */
-              }
-            }}
-          >
-            <Archive size={17} />
-          </button>
+          <span>{state.decks[item.deckId]?.title}</span>
+          <div>
+            <button className="secondary" onClick={() => setEdit(true)}>
+              <Pencil size={14} />
+              编辑知识点
+            </button>
+            <button
+              className="icon-btn"
+              title={item.archived ? "恢复知识点" : "归档知识点"}
+              disabled={busy}
+              onClick={async () => {
+                if (
+                  !item.archived &&
+                  !confirm("归档后暂停该知识点的复习，学习记录会保留。继续？")
+                )
+                  return;
+                try {
+                  await mutate({
+                    type: "knowledge-archive",
+                    itemId: id,
+                    archived: !item.archived,
+                  });
+                  notify(item.archived ? "知识点已恢复" : "知识点已归档");
+                } catch {
+                  /* mutate reports failure */
+                }
+              }}
+            >
+              <Archive size={17} />
+            </button>
+          </div>
         </div>
-      </div>
-      <StudyProgress state={state} />
-      <div className="knowledge-study-columns">
-        <article className="panel knowledge-recall-card">
-          <div className="knowledge-card-meta">
-            <span className={`knowledge-kind ${item.kind}`}>
-              {kinds[item.kind]}
-            </span>
-            <span>
-              {item.archived
-                ? "已归档 · 暂停复习"
-                : dueLabel(state.knowledgeCards[id])}
-            </span>
-          </div>
-          <h1>{item.title}</h1>
-          <div className="knowledge-tags">
-            {item.tags.map((t) => (
-              <span key={t}>{t}</span>
-            ))}
-          </div>
-          <div className="knowledge-prompt">
-            <Markdown>{prompt}</Markdown>
-          </div>
-          {!revealed ? (
-            <div className="knowledge-reveal">
-              <p>
-                {item.kind === "procedure"
-                  ? "先独立完成操作，再对照验收清单。"
-                  : "先尝试回忆，用自己的话说出答案。"}
-              </p>
+        <StudyProgress state={state} />
+        <div className="knowledge-study-columns">
+          <article
+            className="panel knowledge-recall-card"
+            data-panel-id="recall"
+            data-panel-label="知识卡"
+          >
+            <div className="knowledge-card-meta">
+              <span className={`knowledge-kind ${item.kind}`}>
+                {kinds[item.kind]}
+              </span>
+              <span>
+                {item.archived
+                  ? "已归档 · 暂停复习"
+                  : dueLabel(state.knowledgeCards[id])}
+              </span>
+            </div>
+            <h1>{item.title}</h1>
+            <div className="knowledge-tags">
+              {item.tags.map((t) => (
+                <span key={t}>{t}</span>
+              ))}
+            </div>
+            <div className="knowledge-prompt">
+              <Markdown>{prompt}</Markdown>
+            </div>
+            {!revealed ? (
+              <div className="knowledge-reveal">
+                <p>
+                  {item.kind === "procedure"
+                    ? "先独立完成操作，再对照验收清单。"
+                    : "先尝试回忆，用自己的话说出答案。"}
+                </p>
+                <button
+                  className="primary"
+                  aria-keyshortcuts="Space"
+                  onClick={() => setRevealed(true)}
+                >
+                  <BookOpen size={16} />
+                  {item.kind === "procedure" ? "查看验收清单" : "显示答案"}
+                </button>
+                <small className="study-reveal-hint">
+                  也可以按 <kbd>Space</kbd> 展开
+                </small>
+              </div>
+            ) : (
+              <div className="knowledge-answer study-answer-revealed">
+                <span className="eyebrow">
+                  {item.kind === "procedure" ? "验收清单" : "我的参考答案"}
+                </span>
+                <Markdown>{item.answer}</Markdown>
+                {item.source && (
+                  <p className="knowledge-source">来源：{item.source}</p>
+                )}
+                {!item.archived && (
+                  <div className="knowledge-rate">
+                    <p>
+                      {rated
+                        ? "已记录这次学习。准备好后继续下一个。"
+                        : "回忆得怎么样？按真实感受安排下次复习。"}
+                    </p>
+                    {ratingError && (
+                      <p className="knowledge-error" role="alert">
+                        {ratingError}
+                      </p>
+                    )}
+                    <div className="study-rating-buttons">
+                      {(Object.keys(ratingLabels) as Rating[]).map((r) => (
+                        <button
+                          className={`rating-button ${r}`}
+                          key={r}
+                          disabled={busy || rated}
+                          onClick={() => void rate(r)}
+                        >
+                          <RatingSymbol rating={r} />
+                          <strong>{ratingLabels[r]}</strong>
+                          <small>
+                            {r === "again" ? "10 分钟后再学" : "按记忆状态安排"}
+                          </small>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {feedback && <StudyFeedback feedback={feedback} />}
+                {rated && (
+                  <div className="knowledge-actions">
+                    <button className="secondary" onClick={onBack}>
+                      返回知识库
+                    </button>
+                    {next && (
+                      <button
+                        className="primary"
+                        onClick={() => onOpen(next.id)}
+                      >
+                        下一个知识点
+                        <ArrowRight size={15} />
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </article>
+          <aside
+            className="panel knowledge-study-notes"
+            data-panel-id="notes"
+            data-panel-label="学习笔记"
+          >
+            <div className="panel-heading">
+              <h2>学习笔记</h2>
+              <button
+                className="text-button"
+                onClick={() => setNoteView(!noteView)}
+              >
+                {noteView ? "继续编辑" : "Markdown 预览"}
+              </button>
+            </div>
+            {noteView ? (
+              <Markdown>{note || "记录你的理解、易错点和实践结果。"}</Markdown>
+            ) : (
+              <textarea
+                aria-label="知识点学习笔记"
+                maxLength={30000}
+                rows={15}
+                value={note}
+                onChange={(e) => {
+                  setNote(e.target.value);
+                  setNoteSaved(false);
+                  localStorage.setItem(
+                    `coderecall-knowledge-note-${id}`,
+                    e.target.value,
+                  );
+                }}
+                placeholder="支持 Markdown。记录自己的解释、代码片段与实践心得。"
+              />
+            )}
+            <div className="knowledge-note-footer">
+              <span>
+                {noteSaved ? "已保存到知识库" : "草稿保留在本机，待保存"}
+              </span>
               <button
                 className="primary"
-                aria-keyshortcuts="Space"
-                onClick={() => setRevealed(true)}
+                disabled={noteSaved}
+                onClick={() => void saveNote()}
               >
-                <BookOpen size={16} />
-                {item.kind === "procedure" ? "查看验收清单" : "显示答案"}
+                保存笔记
               </button>
-              <small className="study-reveal-hint">
-                也可以按 <kbd>Space</kbd> 展开
-              </small>
             </div>
-          ) : (
-            <div className="knowledge-answer study-answer-revealed">
-              <span className="eyebrow">
-                {item.kind === "procedure" ? "验收清单" : "我的参考答案"}
-              </span>
-              <Markdown>{item.answer}</Markdown>
-              {item.source && (
-                <p className="knowledge-source">来源：{item.source}</p>
-              )}
-              {!item.archived && (
-                <div className="knowledge-rate">
-                  <p>
-                    {rated
-                      ? "已记录这次学习。准备好后继续下一个。"
-                      : "回忆得怎么样？按真实感受安排下次复习。"}
-                  </p>
-                  {ratingError && (
-                    <p className="knowledge-error" role="alert">
-                      {ratingError}
-                    </p>
-                  )}
-                  <div className="study-rating-buttons">
-                    {(Object.keys(ratingLabels) as Rating[]).map((r) => (
-                      <button
-                        className={`rating-button ${r}`}
-                        key={r}
-                        disabled={busy || rated}
-                        onClick={() => void rate(r)}
-                      >
-                        <RatingSymbol rating={r} />
-                        <strong>{ratingLabels[r]}</strong>
-                        <small>
-                          {r === "again" ? "10 分钟后再学" : "按记忆状态安排"}
-                        </small>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {feedback && <StudyFeedback feedback={feedback} />}
-              {rated && (
-                <div className="knowledge-actions">
-                  <button className="secondary" onClick={onBack}>
-                    返回知识库
-                  </button>
-                  {next && (
-                    <button className="primary" onClick={() => onOpen(next.id)}>
-                      下一个知识点
-                      <ArrowRight size={15} />
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-        </article>
-        <aside className="panel knowledge-study-notes">
-          <div className="panel-heading">
-            <h2>学习笔记</h2>
-            <button
-              className="text-button"
-              onClick={() => setNoteView(!noteView)}
-            >
-              {noteView ? "继续编辑" : "Markdown 预览"}
-            </button>
-          </div>
-          {noteView ? (
-            <Markdown>{note || "记录你的理解、易错点和实践结果。"}</Markdown>
-          ) : (
-            <textarea
-              aria-label="知识点学习笔记"
-              maxLength={30000}
-              rows={15}
-              value={note}
-              onChange={(e) => {
-                setNote(e.target.value);
-                setNoteSaved(false);
-                localStorage.setItem(
-                  `coderecall-knowledge-note-${id}`,
-                  e.target.value,
-                );
-              }}
-              placeholder="支持 Markdown。记录自己的解释、代码片段与实践心得。"
-            />
-          )}
-          <div className="knowledge-note-footer">
-            <span>
-              {noteSaved ? "已保存到知识库" : "草稿保留在本机，待保存"}
-            </span>
-            <button
-              className="primary"
-              disabled={noteSaved}
-              onClick={() => void saveNote()}
-            >
-              保存笔记
-            </button>
-          </div>
-        </aside>
-      </div>
-      {edit && (
-        <ItemEditor
-          item={item}
-          state={state}
-          mutate={mutate}
-          notify={notify}
-          close={() => setEdit(false)}
-        />
-      )}
+          </aside>
+        </div>
+        {edit && (
+          <ItemEditor
+            item={item}
+            state={state}
+            mutate={mutate}
+            notify={notify}
+            close={() => setEdit(false)}
+          />
+        )}
+      </PanelLayout>
     </div>
   );
 }

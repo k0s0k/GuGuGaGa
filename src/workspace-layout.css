@@ -1,0 +1,362 @@
+/* Each editor has a bounded scrolling surface, including the CodeMirror host. */
+.customizable-workspace.workspace {
+  height: calc(100dvh - 70px);
+  min-height: 470px;
+  min-width: 0;
+  overflow: hidden;
+}
+.customizable-workspace [hidden] {
+  display: none !important;
+}
+.workspace-layout-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 16px;
+  min-height: 44px;
+  flex-shrink: 0;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+}
+.workspace-layout-toolbar > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 5px;
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+.workspace-layout-toolbar > button {
+  min-height: 29px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 650;
+  background: var(--panel);
+  color: var(--text-secondary);
+}
+.workspace-layout-toolbar > button[aria-pressed="true"] {
+  color: var(--green);
+  border-color: var(--accent-border);
+  background: var(--green-light);
+}
+.workspace-layout-toolbar > button:hover:not(:disabled) {
+  background: var(--hover);
+}
+.workspace-layout-toolbar > .workspace-layout-reset {
+  margin-left: auto;
+}
+.workspace-progress-panel {
+  flex-shrink: 0;
+  min-width: 0;
+}
+.workspace-progress-panel > .study-progress {
+  padding: 10px 20px;
+  border-width: 0 0 2px;
+  border-radius: 0;
+}
+.customizable-workspace .workspace-split {
+  display: grid;
+  min-height: 0;
+  min-width: 0;
+  flex: 1 1 0;
+  overflow: hidden;
+  grid-template-rows: minmax(0, 1fr);
+}
+.customizable-workspace .workspace-split.has-both-panels {
+  grid-template-columns:
+    minmax(220px, var(--workspace-question-share))
+    10px minmax(280px, var(--workspace-editor-share));
+}
+.customizable-workspace .workspace-split.single-panel {
+  grid-template-columns: minmax(0, 1fr);
+}
+.customizable-workspace .question-pane,
+.customizable-workspace .editor-pane {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  max-height: none;
+  overflow: hidden;
+  border: 0;
+}
+.customizable-workspace .question-scroll {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.customizable-workspace .memory-feedback {
+  max-height: 52%;
+  overflow: auto;
+  flex-shrink: 0;
+}
+.customizable-workspace .answer-output-split {
+  flex: 1 1 0;
+  min-height: 0;
+  min-width: 0;
+  display: grid;
+  overflow: hidden;
+  grid-template-columns: minmax(0, 1fr);
+}
+.customizable-workspace .answer-output-split.with-console {
+  grid-template-rows:
+    minmax(120px, var(--workspace-code-share))
+    10px minmax(95px, var(--workspace-console-share));
+}
+.customizable-workspace .answer-output-split.without-console {
+  grid-template-rows: minmax(0, 1fr);
+}
+.customizable-workspace .answer-editor-area {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+.customizable-workspace .code-editor {
+  flex: 1 1 0;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+.customizable-workspace .code-editor > div,
+.customizable-workspace .code-editor .cm-editor {
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
+  min-width: 0;
+}
+.customizable-workspace .code-editor .cm-scroller {
+  height: 100%;
+  min-height: 0;
+  overflow: auto !important;
+  overscroll-behavior: contain;
+}
+.customizable-workspace .editor-keyboard-hint,
+.customizable-workspace .editor-status {
+  flex-shrink: 0;
+}
+.customizable-workspace .console-pane {
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  border: 0;
+  overflow: hidden;
+}
+.customizable-workspace .console-tabs {
+  flex-shrink: 0;
+  min-height: 43px;
+}
+.customizable-workspace .console-content {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.customizable-workspace .runner-footnote {
+  flex-shrink: 0;
+}
+.workspace-resizer {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--soft);
+  touch-action: none;
+  user-select: none;
+}
+.workspace-resizer.columns {
+  cursor: col-resize;
+  border-inline: 1px solid var(--line);
+}
+.workspace-resizer.rows {
+  cursor: row-resize;
+  border-block: 1px solid var(--line);
+}
+.workspace-resizer > span {
+  display: block;
+  border-radius: 3px;
+  background: var(--text-faint);
+  opacity: 0.6;
+  pointer-events: none;
+}
+.workspace-resizer.columns > span {
+  width: 3px;
+  height: 34px;
+}
+.workspace-resizer.rows > span {
+  height: 3px;
+  width: 34px;
+}
+.workspace-resizer:hover,
+.workspace-resizer:focus-visible {
+  background: var(--green-light);
+}
+.workspace-resizer:focus-visible {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: -2px;
+}
+.workspace-resizer:hover > span,
+.workspace-resizer:focus-visible > span {
+  background: var(--green);
+  opacity: 1;
+}
+/* A wide sidebar can leave less room than the viewport breakpoint implies. */
+.customizable-workspace.is-stacked {
+  height: auto;
+  min-height: calc(100dvh - 70px);
+  overflow: visible;
+}
+.customizable-workspace.is-stacked .workspace-layout-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 25;
+}
+.customizable-workspace.is-stacked .workspace-split {
+  display: flex;
+  flex-direction: column;
+  flex: none;
+  overflow: visible;
+}
+.customizable-workspace.is-stacked .workspace-resizer.columns {
+  display: none;
+}
+.customizable-workspace.is-stacked .question-pane {
+  height: 620px;
+  max-height: 80dvh;
+  min-height: 360px;
+  border-bottom: 2px solid var(--line);
+  flex: none;
+}
+.customizable-workspace.is-stacked .editor-pane {
+  height: 680px;
+  max-height: 95dvh;
+  min-height: 500px;
+  flex: none;
+}
+@media (max-width: 1050px) and (min-width: 761px) {
+  .customizable-workspace .editor-toolbar {
+    padding-inline: 8px;
+    gap: 4px;
+  }
+  .customizable-workspace .editor-selects {
+    gap: 2px;
+  }
+  .customizable-workspace .editor-selects .vertical-line {
+    margin-inline: 2px;
+  }
+  .customizable-workspace .editor-selects select {
+    padding-left: 2px;
+    font-size: 10px;
+  }
+  .customizable-workspace .editor-toolbar .icon-btn {
+    min-width: 26px;
+    width: 26px;
+  }
+  .customizable-workspace .question-scroll {
+    padding: 20px;
+  }
+  .customizable-workspace .workspace-tabs {
+    padding-inline: 18px;
+    gap: 16px;
+  }
+  .customizable-workspace .memory-feedback {
+    padding: 16px;
+  }
+  .customizable-workspace .console-tabs {
+    padding-inline: 8px;
+    gap: 5px;
+  }
+  .customizable-workspace .console-tabs > div {
+    gap: 9px;
+  }
+}
+@media (max-width: 760px) {
+  .customizable-workspace.workspace {
+    height: auto;
+    min-height: calc(100dvh - 60px);
+    overflow: visible;
+  }
+  .customizable-workspace .workspace-heading {
+    position: static;
+  }
+  .workspace-layout-toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 25;
+    padding: 8px 12px;
+  }
+  .workspace-layout-toolbar > span {
+    display: none;
+  }
+  .workspace-layout-toolbar > button {
+    padding-inline: 8px;
+    min-height: 31px;
+  }
+  .workspace-layout-toolbar > .workspace-layout-reset {
+    margin-left: 0;
+  }
+  .customizable-workspace .workspace-split.has-both-panels,
+  .customizable-workspace .workspace-split.single-panel {
+    display: flex;
+    flex-direction: column;
+    overflow: visible;
+    flex: none;
+  }
+  .workspace-resizer.columns {
+    display: none;
+  }
+  .customizable-workspace .question-pane {
+    height: 620px;
+    max-height: 80dvh;
+    min-height: 360px;
+    border-bottom: 2px solid var(--line);
+    flex: none;
+  }
+  .customizable-workspace .editor-pane {
+    height: 680px;
+    max-height: 95dvh;
+    min-height: 500px;
+    flex: none;
+  }
+  .customizable-workspace .workspace-split.single-panel .question-pane {
+    height: 740px;
+    max-height: none;
+  }
+  .customizable-workspace .editor-toolbar {
+    padding-inline: 10px;
+  }
+  .customizable-workspace .editor-toolbar .icon-btn {
+    min-width: 30px;
+  }
+  .customizable-workspace .editor-keyboard-hint {
+    font-size: 9px;
+    line-height: 1.5;
+  }
+  .customizable-workspace .workspace-heading > div:first-child {
+    min-width: 0;
+  }
+  .customizable-workspace
+    .workspace-heading
+    > div:first-child
+    > span:not(.workspace-file-icon) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .customizable-workspace .workspace-heading > div:last-child {
+    flex-shrink: 0;
+  }
+  .customizable-workspace .editor-filename > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
