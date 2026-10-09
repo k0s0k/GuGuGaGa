@@ -289,7 +289,7 @@ export default function Workspace({
         `已记录 · ${dueLabel(next.cards[id])}${next.checkins.includes(dayKey()) ? " · 今日已打卡" : ""}`,
       );
     } catch {
-      notify("反馈尚未确认，请再次点击重试；不会重复计入学习记录。");
+      notify("反馈尚未确认，请重试。");
     } finally {
       ratingInFlight.current = false;
       setRatingBusy(false);
@@ -772,8 +772,7 @@ export default function Workspace({
                   {custom ? (
                     <div className="custom-input">
                       <p>
-                        按左侧 ACM
-                        输入约定填写标准输入；自定义输入仅运行，不判定正确性。
+                        按左侧 ACM 输入约定填写标准输入，运行后查看输出结果。
                       </p>
                       <textarea
                         aria-label="自定义标准输入"
@@ -896,7 +895,7 @@ export default function Workspace({
             </div>
           </div>
           <div className="runner-footnote">
-            本地执行 · 仅运行可信代码 · 样例验证不等同于力扣全量判题
+            本地样例测试 · 请运行可信代码
           </div>
         </section>
       </div>
@@ -1301,7 +1300,7 @@ function ProblemSolution({
       ) : (
         <div className="solution-personal-empty">
           <p>
-            还没有当前语言与模式的自定义题解。以内置题解为起点，改成更适合自己的写法。
+            从内置题解开始，写下更适合自己的解法。
           </p>
           <button className="primary small" onClick={begin}>
             从内置题解开始编辑

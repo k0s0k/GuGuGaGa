@@ -331,7 +331,7 @@ export function ItemEditor({
               placeholder={
                 draft.kind === "cloze"
                   ? "使用 {{c1::答案}} 标记填空，例如：I {{c1::recall}} it."
-                  : "让自己不看答案也能开始回忆的问题，支持 Markdown。"
+                  : "用问题引导回忆，支持 Markdown。"
               }
             />
           </label>
@@ -572,20 +572,19 @@ export function ImportKnowledge({
                       />
                     </label>
                     <label>
-                      API Key（仅本次请求）
+                      API Key（本次使用）
                       <input
                         disabled={busy}
                         type="password"
                         autoComplete="off"
                         value={apiKey}
                         onChange={(e) => setApiKey(e.target.value)}
-                        placeholder="本地服务无需密钥可留空"
+                        placeholder="本地服务可留空"
                       />
                     </label>
                   </div>
                   <p className="knowledge-hint">
-                    兼容 Chat Completions
-                    接口。点击下方按钮后，才会把本文发送至你填写的地址；可能产生服务商费用。密钥不写入数据库或备份。生成内容须在下一步检查。
+                    使用 Chat Completions 接口发送文档，费用按服务商计费。生成后可预览编辑。
                   </p>
                 </div>
               )}
@@ -1237,7 +1236,7 @@ export function KnowledgeStudy({
         `已记录 · ${dueLabel(next.knowledgeCards[id])}${next.checkins.includes(dayKey()) ? " · 今日已打卡" : ""}`,
       );
     } catch {
-      notify("记忆反馈尚未确认，点击原按钮可重试，不会重复计数。");
+      notify("记忆反馈尚未确认，请重试。");
     } finally {
       inFlight.current = false;
       setBusy(false);
@@ -1315,7 +1314,7 @@ export function KnowledgeStudy({
             </span>
             <span>
               {item.archived
-                ? "已归档 · 不加入复习计划"
+                ? "已归档 · 暂停复习"
                 : dueLabel(state.knowledgeCards[id])}
             </span>
           </div>
@@ -1401,7 +1400,7 @@ export function KnowledgeStudy({
           </div>
           {noteView ? (
             <Markdown>
-              {note || "还没有笔记。记录你的理解、易错点和实践结果。"}
+              {note || "记录你的理解、易错点和实践结果。"}
             </Markdown>
           ) : (
             <textarea

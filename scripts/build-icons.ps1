@@ -5,7 +5,7 @@ param()
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Drawing
 $projectRoot = Split-Path -Parent $PSScriptRoot
-$source = [Drawing.Image]::FromFile((Join-Path $projectRoot 'packaging/gugugaga-icon-source.png'))
+$source = [Drawing.Image]::FromFile((Join-Path $projectRoot 'packaging/gugugaga-icon-source.jpg'))
 function Get-PngBytes([int]$size) {
     $bitmap = [Drawing.Bitmap]::new($size, $size, [Drawing.Imaging.PixelFormat]::Format32bppArgb)
     $graphics = [Drawing.Graphics]::FromImage($bitmap)
@@ -14,7 +14,12 @@ function Get-PngBytes([int]$size) {
         $graphics.Clear([Drawing.Color]::Transparent)
         $graphics.InterpolationMode = [Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
         $graphics.PixelOffsetMode = [Drawing.Drawing2D.PixelOffsetMode]::HighQuality
-        $graphics.DrawImage($source, [Drawing.Rectangle]::new(0, 0, $size, $size))
+        $scale = [Math]::Min($size / $source.Width, $size / $source.Height)
+        $width = [int][Math]::Round($source.Width * $scale)
+        $height = [int][Math]::Round($source.Height * $scale)
+        $left = [int][Math]::Floor(($size - $width) / 2)
+        $top = [int][Math]::Floor(($size - $height) / 2)
+        $graphics.DrawImage($source, [Drawing.Rectangle]::new($left, $top, $width, $height))
         $bitmap.Save($stream, [Drawing.Imaging.ImageFormat]::Png)
         return ,$stream.ToArray()
     } finally {

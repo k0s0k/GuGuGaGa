@@ -32,7 +32,4 @@ remark-gfm, and their installed dependencies are used to build the frontend.
 Their package versions, declared licenses, and available original license texts
 are collected from the installed packages into THIRD-PARTY-FRONTEND.txt.
 
-Application icon artwork
-The GuGuGaGa penguin icon is custom AI-generated artwork inspired by the
-Takamatsu Tomori penguin meme. It is not an official BiliBili, BanG Dream!,
-or character-brand icon. Character rights belong to their respective owners.
+Application icon: supplied by the project owner.

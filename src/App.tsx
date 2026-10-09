@@ -858,7 +858,7 @@ function Today({
       <div className="knowledge-banner">
         <BookOpen size={25} />
         <div>
-          <h3>不止刷题，建立自己的知识库</h3>
+          <h3>建立自己的知识库</h3>
           <p>
             导入学习笔记，将 C++、英语、Blender 或 UE5
             的知识拆成可回忆的小卡片。
@@ -1402,7 +1402,7 @@ function Review({
                 tab === "到期复习" ? "目前没有到期内容" : "记忆正在慢慢建立"
               }
             >
-              完成新项并提交记忆反馈后，复习任务会出现在这里。
+              完成学习并提交反馈，即可生成复习计划。
             </Empty>
           )}
         </section>
@@ -1416,7 +1416,7 @@ function Review({
             </div>
             <MemoryChart />
             <p className="small-copy">
-              曲线是调度模型的估计，不是能力评分。真实的记忆反馈，能帮助你找到更合适的节奏。
+              曲线展示预计记忆保留率。
             </p>
             <div className="rating-explain">
               <div>
@@ -1439,9 +1439,6 @@ function Review({
                 <b>很熟练</b>
                 <span>安排更远的复习</span>
               </div>
-            </div>
-            <div className="info-note">
-              参考间隔重复思想的透明调度算法，非墨墨官方算法。
             </div>
           </section>
         </aside>
@@ -1805,7 +1802,7 @@ function Settings({
           <div className="setting-row">
             <div>
               <strong>每日计划包含 Hot100</strong>
-              <p>只复习自己的知识库时可关闭。算法题库和已有记录会保留。</p>
+              <p>将 Hot100 练习纳入每日计划。</p>
             </div>
             <input
               aria-label="每日计划包含 Hot100"
@@ -1817,7 +1814,7 @@ function Settings({
           <div className="setting-row">
             <div>
               <strong>目标记忆保留率</strong>
-              <p>数值越高，复习越频繁。只影响之后的调度。</p>
+              <p>应用于后续复习，数值越高，安排越频繁。</p>
             </div>
             <select
               aria-label="目标记忆保留率"
@@ -1866,10 +1863,9 @@ function Settings({
             数据与运行环境
           </h2>
           <div className="setting-block">
-            <strong>你的进度，只属于你</strong>
+            <strong>本地数据与备份</strong>
             <p>
-              学习记录、代码草稿与笔记保存在本机 SQLite
-              数据库。建议定期导出备份。
+              学习数据保存在本机，支持导入和导出备份。
             </p>
             <div className="button-group">
               <button
@@ -1926,7 +1922,7 @@ function Settings({
             )}
           </div>
           <div className="info-note">
-            代码在你的电脑上执行，仅运行自己信任的代码。本地样例通过不等同于力扣全量测试通过。
+            在本机执行样例测试，请运行可信代码。
           </div>
         </section>
         <section className="panel settings-panel sources-panel">
@@ -1935,8 +1931,7 @@ function Settings({
             关于这份学习工具
           </h2>
           <p>
-            GuGuGaGa
-            将专题学习与间隔重复结合。题解为独立编写，每题提供一套高效解法，并标明适用条件与复杂度；“最优”按常用计算模型与题目约束衡量。复习算法是透明启发式模型，不复现墨墨的专有算法。
+            GuGuGaGa 将知识整理、代码练习与间隔复习结合，帮助你持续学习。
           </p>
           <div className="source-links">
             <a

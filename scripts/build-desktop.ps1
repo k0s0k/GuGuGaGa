@@ -36,12 +36,12 @@ if (-not $SkipFrontend) {
 $releaseRoot = Join-Path $projectRoot "release"
 $workRoot = Join-Path $projectRoot ".local/pyinstaller"
 # Keep every older release folder intact when creating this version.
-$releaseDirectory = [IO.Path]::GetFullPath((Join-Path $releaseRoot "GuGuGaGa-v2.1.0"))
+$releaseDirectory = [IO.Path]::GetFullPath((Join-Path $releaseRoot "GuGuGaGa-v2.1.1"))
 $safeReleaseRoot = [IO.Path]::GetFullPath($releaseRoot) + [IO.Path]::DirectorySeparatorChar
 if (-not $releaseDirectory.StartsWith($safeReleaseRoot, [StringComparison]::OrdinalIgnoreCase)) {
     throw "The release directory must stay inside the project release folder."
 }
-# --noconfirm overwrites only the generated version 2.1 release directory in the spec.
+# --noconfirm overwrites only the generated version 2.1.1 release directory in the spec.
 & $packagingPython -m PyInstaller --noconfirm --clean --distpath $releaseRoot --workpath $workRoot (Join-Path $projectRoot "packaging/GuGuGaGa.spec")
 if ($LASTEXITCODE -ne 0) { throw "Packaging GuGuGaGa failed." }
 
@@ -52,7 +52,7 @@ if ($LASTEXITCODE -ne 0) { throw "Collecting frontend license notices failed." }
 Copy-Item -LiteralPath (Join-Path $projectRoot "docs") -Destination (Join-Path $releaseDirectory "docs") -Recurse -Force
 $publicDirectory = Join-Path $releaseDirectory "public"
 New-Item -ItemType Directory -Path $publicDirectory -Force | Out-Null
-foreach ($templateFile in @("knowledge-template.json", "knowledge-schema.json")) {
+foreach ($templateFile in @("knowledge-template.json", "knowledge-schema.json", "gugugaga-icon.png")) {
     Copy-Item -LiteralPath (Join-Path $projectRoot "public/$templateFile") -Destination (Join-Path $publicDirectory $templateFile) -Force
 }
 foreach ($shortcutFile in @("create-shortcut.cmd", "create-shortcut.ps1")) {
@@ -63,4 +63,4 @@ foreach ($shortcutFile in @("create-shortcut.cmd", "create-shortcut.ps1")) {
 }
 Write-Host ""
 Write-Host "Build complete: $releaseDirectory/GuGuGaGa.exe"
-Write-Host "Distribute the entire GuGuGaGa-v2.1.0 directory; the executable needs its _internal directory."
+Write-Host "Distribute the entire GuGuGaGa-v2.1.1 directory; the executable needs its _internal directory."

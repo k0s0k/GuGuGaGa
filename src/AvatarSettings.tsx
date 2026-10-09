@@ -135,8 +135,7 @@ export default function AvatarSettings({
         <div className="avatar-settings-options">
           <strong>让工作空间更像你</strong>
           <p>
-            支持 PNG、JPEG、WebP，最大 5
-            MB。自动居中裁成正方形；保存后仅存于本机，并随学习备份导出。
+            支持 PNG、JPEG、WebP，最大 5 MB。自动居中裁剪，随学习备份保存。
           </p>
           <div className="button-group">
             <button
