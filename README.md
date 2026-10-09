@@ -10,7 +10,7 @@
 
 </div>
 
-本地知识复习与打卡软件。把 C++、英语、Blender、UE5 等学习笔记整理成知识卡，用间隔复习巩固记忆。内置 LeetCode Hot100，支持 Python / C++ 与 LeetCode / ACM 两种答题模式。
+本地知识库复习与打卡软件。可以把 C++、英语、Blender、UE5 等学习笔记整理成知识卡，用间隔复习巩固记忆。目前内置 LeetCode Hot100 题库，支持 Python / C++ 与 LeetCode / ACM 两种答题模式。
 
 ## 支持平台
 
