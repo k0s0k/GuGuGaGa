@@ -1,6 +1,6 @@
 # 知识库导入格式
 
-CodeRecall 2 使用 UTF-8 JSON 交换知识点。一个文件包含一个知识库和 1–1000 个知识点；导入前会进行格式校验。下载 [可直接导入的模板](../public/knowledge-template.json) 或查看 [JSON Schema](../public/knowledge-schema.json)。桌面发行目录也附带这两个文件。
+GuGuGaGa 使用 UTF-8 JSON 交换知识点。一个文件包含一个知识库和 1–1000 个知识点；导入前会进行格式校验。下载 [可直接导入的模板](../public/knowledge-template.json) 或查看 [JSON Schema](../public/knowledge-schema.json)。桌面发行目录也附带这两个文件。
 
 ```json
 {

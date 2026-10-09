@@ -11,7 +11,7 @@ cpp_runtime = ROOT / ".local" / "toolchains" / "w64devkit"
 for required in (
     ROOT / "desktop.py",
     ROOT / "dist" / "index.html",
-    ROOT / "packaging" / "CodeRecall.ico",
+    ROOT / "packaging" / "GuGuGaGa.ico",
     python_runtime / "python.exe",
     cpp_runtime / "bin" / "g++.exe",
 ):
@@ -23,7 +23,7 @@ datas = [
     (str(python_runtime), "runtime/python"),
     # Keep the whole relocatable toolchain, including its source and license notices.
     (str(cpp_runtime), "runtime/toolchains/w64devkit"),
-    (str(ROOT / "packaging" / "CodeRecall.ico"), "packaging"),
+    (str(ROOT / "packaging" / "GuGuGaGa.ico"), "packaging"),
 ]
 datas += collect_data_files("webview")
 for distribution in ("pywebview", "pythonnet", "clr_loader", "cffi", "pycparser", "bottle", "proxy_tools", "typing_extensions"):
@@ -55,15 +55,15 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name="CodeRecall",
+    name="GuGuGaGa",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
     upx=False,
     console=False,
     disable_windowed_traceback=False,
-    icon=str(ROOT / "packaging" / "CodeRecall.ico"),
+    icon=str(ROOT / "packaging" / "GuGuGaGa.ico"),
     version=str(ROOT / "packaging" / "version-info.txt"),
     contents_directory="_internal",
 )
-coll = COLLECT(exe, a.binaries, a.datas, strip=False, upx=False, name="CodeRecall-v2.0.0")
+coll = COLLECT(exe, a.binaries, a.datas, strip=False, upx=False, name="GuGuGaGa-v2.1.0")

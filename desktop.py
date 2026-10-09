@@ -1,4 +1,4 @@
-"""CodeRecall Windows desktop entry point.
+"""GuGuGaGa Windows desktop entry point.
 
 Run from source: python desktop.py
 Frozen builds include an independent Python interpreter for submitted programs.
@@ -33,9 +33,11 @@ from server.ai_import import split_document
 from server.runtime import app_dir, resource_root
 from server.store import Store
 
-APP_NAME = "CodeRecall"
+APP_NAME = "GuGuGaGa"
+# Keep the v2 activation protocol and data directory compatible with CodeRecall.
 APP_ID = "CodeRecall.Desktop.2"
-VERSION = "2.0.0"
+WINDOWS_APP_ID = "GuGuGaGa.Desktop"
+VERSION = "2.1.0"
 LOGGER = logging.getLogger("coderecall.desktop")
 
 
@@ -166,7 +168,7 @@ def native_window(service: DesktopService, directory: Path, smoke_report: Path |
     webview.settings["ALLOW_DOWNLOADS"] = True
     webview.settings["OPEN_EXTERNAL_LINKS_IN_BROWSER"] = True
     window = webview.create_window(
-        "CodeRecall · 知识与复习", service.url,
+        f"{APP_NAME} · 知识与复习", service.url,
         width=1320, height=900, min_size=(900, 640),
         background_color="#fbfbfa", hidden=smoke_report is not None,
     )
@@ -203,7 +205,9 @@ def native_window(service: DesktopService, directory: Path, smoke_report: Path |
                     LOGGER.exception("Could not close the smoke-test window")
         threading.Thread(target=watchdog, daemon=True).start()
     try:
-        webview.start(gui="edgechromium", debug=False, private_mode=False, storage_path=str(directory / "webview"))
+        webview.start(gui="edgechromium", debug=False, private_mode=False,
+                      storage_path=str(directory / "webview"),
+                      icon=str(resource_root() / "packaging" / "GuGuGaGa.ico"))
     finally:
         finished.set()
         if smoke_report:
@@ -218,16 +222,16 @@ def browser_fallback(service: DesktopService, directory: Path):
     import tkinter as tk
     from tkinter import ttk
     root = tk.Tk()
-    root.title("CodeRecall")
+    root.title(APP_NAME)
     root.geometry("440x270")
     root.resizable(False, False)
     root.configure(background="#f4f5f1")
-    icon = resource_root() / "packaging" / "CodeRecall.ico"
+    icon = resource_root() / "packaging" / "GuGuGaGa.ico"
     if icon.is_file():
         root.iconbitmap(str(icon))
-    tk.Label(root, text="CodeRecall 正在运行", font=("Microsoft YaHei UI", 17, "bold"), background="#f4f5f1", foreground="#2e4234").pack(pady=(30, 15))
+    tk.Label(root, text=f"{APP_NAME} 正在运行", font=("Microsoft YaHei UI", 17, "bold"), background="#f4f5f1", foreground="#2e4234").pack(pady=(30, 15))
     tk.Label(root, text="当前使用浏览器打开工作台。\n关闭此窗口即可退出软件。", font=("Microsoft YaHei UI", 10), background="#f4f5f1", foreground="#667260", justify="center").pack(pady=7)
-    ttk.Button(root, text="打开刷题工作台", command=lambda: webbrowser.open(service.url)).pack(pady=13)
+    ttk.Button(root, text="打开学习工作台", command=lambda: webbrowser.open(service.url)).pack(pady=13)
     tk.Label(root, text="独立窗口需要 Microsoft Edge WebView2 Runtime", font=("Microsoft YaHei UI", 8), background="#f4f5f1", foreground="#86917f").pack()
     root.after(100, lambda: webbrowser.open(service.url))
     def focus():
@@ -251,7 +255,13 @@ def self_test(report_path: Path):
                 response = connection.getresponse()
                 html = response.read().decode("utf-8")
                 assert response.status == 200 and "root" in html, "Packaged frontend missing"
+                assert "GuGuGaGa" in html and "/gugugaga-icon.png" in html, "Packaged branding is outdated"
                 report["checks"].append("packaged_frontend")
+                connection.request("GET", "/gugugaga-icon.png")
+                response = connection.getresponse()
+                assert response.status == 200 and response.read().startswith(b"\x89PNG\r\n\x1a\n"), "Packaged icon is missing"
+                assert (resource_root() / "packaging" / "GuGuGaGa.ico").is_file(), "Native icon is missing"
+                report["checks"].append("application_branding_and_icon")
                 connection.request("GET", "/api/bootstrap")
                 response = connection.getresponse()
                 payload = json.loads(response.read())
@@ -280,6 +290,11 @@ def self_test(report_path: Path):
                 assert state["knowledgeCards"][item_id]["reviews"] == 1
                 assert service.store.validate_import(state)["knowledge"] == state["knowledge"]
                 report["checks"].append("knowledge_import_review_backup")
+                avatar = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC"
+                state = service.store.action({"type": "settings", "settings": {"avatar": avatar}})
+                assert service.store.read()["settings"]["avatar"] == avatar
+                assert service.store.validate_import(state)["settings"]["avatar"] == avatar
+                report["checks"].append("avatar_persistence_and_backup")
                 report["passed"] = True
             finally:
                 service.stop()
@@ -292,13 +307,13 @@ def self_test(report_path: Path):
 def show_error(message: str):
     LOGGER.error(message)
     if os.name == "nt":
-        ctypes.windll.user32.MessageBoxW(None, message, "CodeRecall 无法启动", 0x10)
+        ctypes.windll.user32.MessageBoxW(None, message, f"{APP_NAME} 无法启动", 0x10)
     elif sys.stderr:
         print(message, file=sys.stderr)
 
 
 def main():
-    parser = argparse.ArgumentParser(description="CodeRecall desktop")
+    parser = argparse.ArgumentParser(description=f"{APP_NAME} desktop")
     parser.add_argument("--data-dir", type=Path, help="Use an alternate local data directory")
     parser.add_argument("--self-test", type=Path, metavar="REPORT_JSON", help="Verify packaged runtime without opening a window")
     parser.add_argument("--gui-smoke-test", type=Path, metavar="REPORT_JSON", help="Verify WebView2 in a hidden window")
@@ -314,12 +329,12 @@ def main():
         success = activate_existing(directory / "instance.json")
         mutex.close()
         if not success:
-            show_error("CodeRecall 已在运行，但窗口尚未响应。请稍后再次打开。\n如果问题持续，请关闭现有 CodeRecall 后重试。")
+            show_error(f"{APP_NAME} 已在运行，但窗口尚未响应。请稍后再次打开。\n如果问题持续，请关闭现有 GuGuGaGa 或 CodeRecall 2 后重试。")
         return 0 if success else 1
     service = None
     try:
         if not (resource_root() / "dist" / "index.html").is_file():
-            raise FileNotFoundError("缺少界面资源。请保留 CodeRecall.exe 与 _internal 文件夹在同一目录。")
+            raise FileNotFoundError("缺少界面资源。请保留 GuGuGaGa.exe 与 _internal 文件夹在同一目录。")
         if not args.gui_smoke_test and not args.data_dir:
             candidates = [app_dir() / ".local" / "coderecall-v2.db", app_dir().parent.parent / ".local" / "coderecall-v2.db", directory.parent / "CodeRecall" / "coderecall.db", app_dir() / ".local" / "coderecall.db", app_dir().parent.parent / ".local" / "coderecall.db"]
             migrated = migrate_legacy_database(directory / "coderecall.db", candidates)
@@ -328,7 +343,7 @@ def main():
         service = DesktopService(directory)
         service.start()
         if os.name == "nt":
-            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(APP_ID)
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(WINDOWS_APP_ID)
         if args.browser:
             browser_fallback(service, directory)
         else:

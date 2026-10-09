@@ -1,9 +1,9 @@
 $ErrorActionPreference = 'Stop'
 
-# The packaged copy of this script lives beside CodeRecall.exe.
-$executablePath = Join-Path $PSScriptRoot 'CodeRecall.exe'
+# The packaged copy of this script lives beside GuGuGaGa.exe.
+$executablePath = Join-Path $PSScriptRoot 'GuGuGaGa.exe'
 if (-not (Test-Path -LiteralPath $executablePath -PathType Leaf)) {
-    throw 'CodeRecall.exe was not found beside this script. Run the copy inside release\CodeRecall-v2.0.0.'
+    throw 'GuGuGaGa.exe was not found beside this script. Run the copy inside release\GuGuGaGa-v2.1.0.'
 }
 $executablePath = (Resolve-Path -LiteralPath $executablePath).ProviderPath
 $workingDirectory = Split-Path -Parent $executablePath
@@ -13,14 +13,14 @@ if ([string]::IsNullOrWhiteSpace($desktopDirectory) -or -not (Test-Path -Literal
 }
 
 $shellObject = New-Object -ComObject WScript.Shell
-$temporaryLink = Join-Path $desktopDirectory ('.coderecall-' + [Guid]::NewGuid().ToString('N') + '.lnk')
+$temporaryLink = Join-Path $desktopDirectory ('.gugugaga-' + [Guid]::NewGuid().ToString('N') + '.lnk')
 try {
     $shortcut = $shellObject.CreateShortcut($temporaryLink)
     try {
         $shortcut.TargetPath = $executablePath
         $shortcut.WorkingDirectory = $workingDirectory
         $shortcut.IconLocation = $executablePath + ',0'
-        $shortcut.Description = 'CodeRecall 2 - Knowledge study and spaced repetition'
+        $shortcut.Description = 'GuGuGaGa - Knowledge study and spaced repetition'
         $shortcut.Save()
     }
     finally {
@@ -29,7 +29,7 @@ try {
 
     $number = 1
     while ($true) {
-        $name = if ($number -eq 1) { 'CodeRecall 2.lnk' } else { 'CodeRecall 2 (' + $number + ').lnk' }
+        $name = if ($number -eq 1) { 'GuGuGaGa.lnk' } else { 'GuGuGaGa (' + $number + ').lnk' }
         $shortcutPath = Join-Path $desktopDirectory $name
         if (Test-Path -LiteralPath $shortcutPath) {
             $existing = $null

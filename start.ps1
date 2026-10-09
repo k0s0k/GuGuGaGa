@@ -70,6 +70,6 @@ try {
 }
 catch {
     Write-Host ""
-    Write-Host "CodeRecall could not start: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host "GuGuGaGa could not start: $($_.Exception.Message)" -ForegroundColor Red
     exit 1
 }

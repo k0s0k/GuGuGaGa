@@ -48,6 +48,7 @@ export interface Settings {
   retention: number;
   theme: "light" | "dark";
   includeHot100: boolean;
+  avatar: string;
 }
 export interface AppState {
   version: number;

@@ -1,10 +1,17 @@
-# CodeRecall 2 · 每天一点，把知识记牢
+# GuGuGaGa · 每天一点，把知识记牢
 
 本地优先的通用知识复习与打卡工具：为 C++、英语、Blender、UE5 等学习主题建立自己的知识库，把笔记拆成可主动回忆的问答、填空或操作流程，再用间隔重复安排复习。同时保留完整 **Python 3 / C++17、LeetCode / ACM 双模式的 Hot100** 专区。
 
 界面采用浅色留白、侧边栏、分栏工作台与深色主题，借鉴 Codex 桌面版的界面组织方式。可双击 Windows `.exe` 打开独立窗口，也可通过源码启动本地网页应用。日常使用、知识库管理和按标题拆分笔记无需账号或 API；使用可选的 AI 拆分时才连接用户指定的模型服务。
 
-## 2.0 新增功能
+## 2.1 新增功能
+
+- **新名称与图标**：应用更名为 GuGuGaGa，桌面窗口、任务栏、快捷方式和网页使用统一的新名称与企鹅图标。
+- **个人头像**：可在偏好设置上传自己的图片，并在工作空间显示；头像随本地数据和完整备份保存。
+- **工作空间布局**：修复侧边栏底部工作空间被遮挡的问题，小窗口也能访问导航与个人信息。
+- **直接沿用进度**：2.1 延续 CodeRecall 2 的数据目录、备份格式和草稿，不需要手动搬迁。
+
+## 2.0 功能
 
 - **自己的题解**：按题目、语言与答题模式保存简洁版、注释版和完整解析；可修改、复制到答题区，也可恢复内置参考答案。个人版本独立存储，原始题解保留。
 - **统一代码编辑行为**：四空格缩进；Enter 换行并按语法缩进；Tab 优先接受补全，无补全时缩进；Shift+Tab 反缩进；Ctrl+Space 主动触发补全。Enter 不再误接受候选项。
@@ -30,13 +37,13 @@
 
 ## Windows 桌面版
 
-新版桌面包的入口是 **`release/CodeRecall-v2.0.0/CodeRecall.exe`**，双击即可启动。应用自带 Python 运行环境、C++ 编译工具和已构建的界面，使用桌面包不需要另行安装 Node.js、Python 或 C++ 编译器。
+新版桌面包的入口是 **`release/GuGuGaGa-v2.1.0/GuGuGaGa.exe`**，双击即可启动。应用自带 Python 运行环境、C++ 编译工具和已构建的界面，使用桌面包不需要另行安装 Node.js、Python 或 C++ 编译器。
 
-请把 **`CodeRecall.exe` 与同目录的整个 `_internal` 文件夹一起保留**。移动、复制或备份程序时，操作整个 `release/CodeRecall-v2.0.0` 文件夹；只复制 `.exe` 到桌面会导致依赖缺失。日常使用可以把程序放在固定目录，再创建桌面快捷方式。
+请把 **`GuGuGaGa.exe` 与同目录的整个 `_internal` 文件夹一起保留**。移动、复制或备份程序时，操作整个 `release/GuGuGaGa-v2.1.0` 文件夹；只复制 `.exe` 到桌面会导致依赖缺失。日常使用可以把程序放在固定目录，再创建桌面快捷方式。
 
-在 `.exe` 所在目录双击 **`create-shortcut.cmd`**，即可创建 **CodeRecall 2** 桌面快捷方式。旧版 CodeRecall 快捷方式保留；同名快捷方式指向其他位置时，会改用 `CodeRecall 2 (2)` 等名称，不覆盖已有快捷方式。程序所在文件夹移动后，可以重新运行脚本。
+在 `.exe` 所在目录双击 **`create-shortcut.cmd`**，即可创建 **GuGuGaGa** 桌面快捷方式。旧版 CodeRecall 快捷方式保留；同名快捷方式指向其他位置时，会改用 `GuGuGaGa (2)` 等名称，不覆盖已有快捷方式。程序所在文件夹移动后，可以重新运行脚本。
 
-新版桌面数据保存在 **`%LOCALAPPDATA%\CodeRecall-v2\coderecall.db`**。旧版仍使用 **`%LOCALAPPDATA%\CodeRecall\coderecall.db`**，两份程序之后的学习记录相互独立。数据与程序分开存放，移动程序目录不会删除学习记录；跨电脑迁移时可在设置页导出、导入完整 JSON 备份。
+GuGuGaGa 2.1 直接沿用 CodeRecall 2.0 的 **`%LOCALAPPDATA%\CodeRecall-v2\coderecall.db`** 和 WebView 草稿缓存。两者共享数据与单实例启动协议，升级无需迁移；使用新版本前请先退出正在运行的 CodeRecall 2。名称变化不会清空原有学习进度。最初的 CodeRecall 1.0 仍使用 **`%LOCALAPPDATA%\CodeRecall\coderecall.db`**，其记录与 2.x 独立。数据与程序分开存放，移动程序目录不会删除学习记录；跨电脑迁移时可在设置页导出、导入完整 JSON 备份。
 
 首次启动且新版尚无数据库时，优先采用同项目的新版源码数据库，其次复制旧版桌面数据或旧版源码数据，再在副本中升级结构。迁移使用 SQLite 一致性备份，包含已经提交但仍在 WAL 中的数据；**保留原数据库，不覆盖新版已有进度**。程序升级前也会写出备份。若无法自动找到原数据，可从旧版导出 JSON，再在新版设置页导入。
 
@@ -167,7 +174,7 @@ python -m server.app
 如需更换存储位置：
 
 ```powershell
-python -m server.app --data "D:\CodeRecallData\progress.db"
+python -m server.app --data "D:\GuGuGaGaData\progress.db"
 ```
 
 ## 开发与测试
@@ -216,7 +223,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\setup-cpp.ps1
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-desktop.ps1
 ```
 
-构建脚本在 `.local/package-env` 安装锁定版本的桌面依赖，下载并校验嵌入式 Python，再生成 `release/CodeRecall-v2.0.0`。`-SkipInstall` 可复用已有打包依赖，`-SkipFrontend` 可复用已构建的前端。旧 `release/CodeRecall` 与 `release/CodeRecall-v1.0.0` 不作为构建输出。发行包附带操作说明、导入模板与第三方许可证信息。
+构建脚本在 `.local/package-env` 安装锁定版本的桌面依赖，下载并校验嵌入式 Python，再生成 `release/GuGuGaGa-v2.1.0`。`-SkipInstall` 可复用已有打包依赖，`-SkipFrontend` 可复用已构建的前端。旧 `release/CodeRecall`、`release/CodeRecall-v1.0.0` 与 `release/CodeRecall-v2.0.0` 不作为构建输出。发行包附带操作说明、导入模板与第三方许可证信息。
 
 `verify_content.py` 通过应用实际使用的本地运行器验证题库，默认最多同时运行 2 个程序，报告写入 **`.local/content-verification.json`**。任何失败都会返回非零退出码；`--report` 可指定报告路径。全量 C++ 编译需要一些时间；回归期间建议不要同时在界面运行代码，以免占满本地并发名额。
 

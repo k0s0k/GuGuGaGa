@@ -23,7 +23,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--output', required=True, type=Path)
     args = parser.parse_args()
-    sections = ['CodeRecall frontend: original notices from installed npm packages.\n'
+    sections = ['GuGuGaGa frontend: original notices from installed npm packages.\n'
                 'Build tools and development-only packages may also be listed.\n']
     seen = set()
     for package in packages(ROOT / 'node_modules'):

@@ -1,3 +1,5 @@
+import base64
+import binascii
 import copy
 from contextlib import contextmanager
 from datetime import date
@@ -12,10 +14,44 @@ from .scheduler import RATINGS, schedule, utc_now, parse_time
 from .knowledge import deck_fields, item_fields, identifier, import_into, text
 
 MAX_STATE_BYTES = 64 * 1024 * 1024
+MAX_AVATAR_BYTES = 256 * 1024
+
+
+def avatar_data_url(value):
+    """Accept bounded, canonical raster data URLs; never persist remote URLs or SVG."""
+    if not isinstance(value, str):
+        raise ValueError("头像格式无效")
+    if value == "":
+        return value
+    if len(value) > ((MAX_AVATAR_BYTES + 2) // 3) * 4 + 24:
+        raise ValueError("头像压缩后最多 256 KB")
+    prefix, separator, encoded = value.partition(",")
+    if not separator or prefix not in ("data:image/png;base64", "data:image/jpeg;base64", "data:image/webp;base64"):
+        raise ValueError("头像仅支持 PNG、JPEG 或 WebP 图片")
+    try:
+        data = base64.b64decode(encoded, validate=True)
+    except (ValueError, binascii.Error) as exc:
+        raise ValueError("头像图片编码无效") from exc
+    if len(data) > MAX_AVATAR_BYTES:
+        raise ValueError("头像压缩后最多 256 KB")
+    if not data or base64.b64encode(data).decode("ascii") != encoded:
+        raise ValueError("头像图片编码无效")
+    if prefix == "data:image/png;base64":
+        valid = (len(data) >= 45 and data.startswith(b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR")
+                 and data.endswith(b"\x00\x00\x00\x00IEND\xaeB`\x82"))
+    elif prefix == "data:image/jpeg;base64":
+        valid = len(data) >= 4 and data.startswith(b"\xff\xd8\xff") and data.endswith(b"\xff\xd9")
+    else:
+        valid = (len(data) >= 20 and data.startswith(b"RIFF") and data[8:12] == b"WEBP"
+                 and data[12:16] in (b"VP8 ", b"VP8L", b"VP8X")
+                 and int.from_bytes(data[4:8], "little") == len(data) - 8)
+    if not valid:
+        raise ValueError("头像图片内容与格式不匹配")
+    return value
 
 DEFAULT_STATE = {
     "version": 2,
-    "settings": {"dailyGoal": 3, "newPerDay": 3, "language": "python", "mode": "leetcode", "retention": 0.9, "theme": "light", "includeHot100": True},
+    "settings": {"dailyGoal": 3, "newPerDay": 3, "language": "python", "mode": "leetcode", "retention": 0.9, "theme": "light", "includeHot100": True, "avatar": ""},
     "cards": {}, "notes": {}, "favorites": [], "drafts": {}, "events": [], "checkins": [],
     "solutions": {}, "decks": {}, "knowledge": {}, "knowledgeCards": {},
     "knowledgeNotes": {}, "knowledgeFavorites": [], "knowledgeEvents": [],
@@ -39,7 +75,7 @@ class Store:
                 upgraded = self.validate_import(state)
                 self._backup(state, "before-v2-upgrade")
                 db.execute("UPDATE state SET data=? WHERE id=1", (json.dumps(upgraded, ensure_ascii=False, allow_nan=False),))
-            elif "includeHot100" not in state.get("settings", {}):
+            elif any(key not in state.get("settings", {}) for key in ("includeHot100", "avatar")):
                 # Additive v2 preference: retain all existing study data unchanged.
                 state["settings"] = self.settings(state.get("settings", {}))
                 db.execute("UPDATE state SET data=? WHERE id=1", (json.dumps(state, ensure_ascii=False, allow_nan=False),))
@@ -104,6 +140,7 @@ class Store:
             raise ValueError("主题无效")
         if type(result["includeHot100"]) is not bool:
             raise ValueError("Hot 100 推荐开关必须为布尔值")
+        result["avatar"] = avatar_data_url(result["avatar"])
         if type(result["retention"]) not in (int, float) or not math.isfinite(result["retention"]) or not 0.8 <= result["retention"] <= 0.95:
             raise ValueError("目标记忆保留率范围为 80%–95%")
         return result

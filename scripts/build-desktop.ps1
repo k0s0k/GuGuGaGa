@@ -35,15 +35,15 @@ if (-not $SkipFrontend) {
 
 $releaseRoot = Join-Path $projectRoot "release"
 $workRoot = Join-Path $projectRoot ".local/pyinstaller"
-# The versioned output preserves the original CodeRecall and CodeRecall-v1.0.0 folders.
-$releaseDirectory = [IO.Path]::GetFullPath((Join-Path $releaseRoot "CodeRecall-v2.0.0"))
+# Keep every older release folder intact when creating this version.
+$releaseDirectory = [IO.Path]::GetFullPath((Join-Path $releaseRoot "GuGuGaGa-v2.1.0"))
 $safeReleaseRoot = [IO.Path]::GetFullPath($releaseRoot) + [IO.Path]::DirectorySeparatorChar
 if (-not $releaseDirectory.StartsWith($safeReleaseRoot, [StringComparison]::OrdinalIgnoreCase)) {
     throw "The release directory must stay inside the project release folder."
 }
-# --noconfirm overwrites only the generated version 2 release directory in the spec.
-& $packagingPython -m PyInstaller --noconfirm --clean --distpath $releaseRoot --workpath $workRoot (Join-Path $projectRoot "packaging/CodeRecall.spec")
-if ($LASTEXITCODE -ne 0) { throw "Packaging CodeRecall failed." }
+# --noconfirm overwrites only the generated version 2.1 release directory in the spec.
+& $packagingPython -m PyInstaller --noconfirm --clean --distpath $releaseRoot --workpath $workRoot (Join-Path $projectRoot "packaging/GuGuGaGa.spec")
+if ($LASTEXITCODE -ne 0) { throw "Packaging GuGuGaGa failed." }
 
 Copy-Item -LiteralPath (Join-Path $projectRoot "README.md") -Destination (Join-Path $releaseDirectory "README.md") -Force
 Copy-Item -LiteralPath (Join-Path $projectRoot "packaging/THIRD-PARTY-NOTICES.txt") -Destination (Join-Path $releaseDirectory "THIRD-PARTY-NOTICES.txt") -Force
@@ -62,5 +62,5 @@ foreach ($shortcutFile in @("create-shortcut.cmd", "create-shortcut.ps1")) {
     }
 }
 Write-Host ""
-Write-Host "Build complete: $releaseDirectory/CodeRecall.exe"
-Write-Host "Distribute the entire CodeRecall-v2.0.0 directory; the executable needs its _internal directory."
+Write-Host "Build complete: $releaseDirectory/GuGuGaGa.exe"
+Write-Host "Distribute the entire GuGuGaGa-v2.1.0 directory; the executable needs its _internal directory."

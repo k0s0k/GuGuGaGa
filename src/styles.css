@@ -214,6 +214,15 @@ option {
   flex-direction: column;
   padding: 27px 14px 0;
   z-index: 40;
+  overflow: hidden;
+}
+.sidebar-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  padding-top: 1px;
 }
 .brand {
   display: flex;
@@ -226,6 +235,7 @@ option {
   font-size: 17px;
   letter-spacing: -0.6px;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 .brand > svg {
   margin-left: auto;
@@ -240,6 +250,25 @@ option {
   color: #d9eee0;
   background: #2c342e;
   flex-shrink: 0;
+  overflow: hidden;
+}
+.brand-mark img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.mini-brand-image {
+  width: 19px;
+  height: 19px;
+  border-radius: 5px;
+  vertical-align: middle;
+}
+.guide-brand-image {
+  display: block;
+  width: 55px;
+  height: 55px;
+  border-radius: 14px;
+  margin-bottom: 16px;
 }
 .brand-sub {
   display: block;
@@ -251,6 +280,7 @@ option {
 }
 .quick-search {
   display: flex;
+  width: calc(100% - 12px);
   align-items: center;
   gap: 8px;
   border: 1px solid #e1e4dc;
@@ -359,7 +389,10 @@ kbd {
   color: var(--text-faint);
 }
 .sidebar-bottom {
-  margin-top: auto;
+  flex: 0 0 auto;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  background: var(--sidebar);
 }
 .little-quote {
   display: flex;
@@ -379,7 +412,23 @@ kbd {
   gap: 9px;
   border-top: 1px solid var(--line);
   margin-top: 13px;
-  padding: 18px 9px 20px;
+  padding: 12px 3px max(12px, env(safe-area-inset-bottom));
+}
+.profile-account {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  padding: 6px;
+  border-radius: 7px;
+}
+.profile-account:hover {
+  background: var(--hover);
+}
+.profile-details {
+  min-width: 0;
 }
 .avatar {
   width: 29px;
@@ -390,19 +439,88 @@ kbd {
   background: #e6e8df;
   color: #6b7562;
   font-size: 12px;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.avatar img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 .profile strong {
   display: block;
   font-size: 10px;
   font-weight: 500;
 }
-.profile > div > span {
+.profile-details > span {
   display: flex;
   align-items: center;
   gap: 5px;
   margin-top: 4px;
   font-size: 9px;
   color: var(--text-secondary);
+}
+.avatar-settings {
+  grid-column: 1 / -1;
+}
+.avatar-settings-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 23px;
+  padding-top: 8px;
+}
+.avatar-settings-preview {
+  width: 88px;
+  height: 88px;
+  border: 1px solid var(--line);
+}
+.avatar-settings-preview > svg {
+  width: 34px;
+  height: 34px;
+}
+.avatar-settings-options {
+  min-width: 0;
+}
+.avatar-settings-options > strong {
+  font-size: 13px;
+  font-weight: 500;
+}
+.avatar-settings-options > p {
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.8;
+  margin-top: 7px;
+  max-width: 530px;
+}
+.avatar-settings-options .button-group {
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 12px;
+}
+.avatar-save-actions > span {
+  font-size: 10px;
+}
+.avatar-settings-options > .avatar-error {
+  color: #bd4949;
+}
+@media (max-height: 680px) {
+  .sidebar {
+    padding-top: 17px;
+  }
+  .sidebar .quick-search {
+    margin-top: 19px;
+    margin-bottom: 18px;
+  }
+}
+@media (max-width: 480px) {
+  .avatar-settings-content {
+    gap: 15px;
+  }
+  .avatar-settings-preview {
+    width: 58px;
+    height: 58px;
+  }
 }
 .status-dot {
   display: inline-block;

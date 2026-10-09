@@ -49,6 +49,7 @@ import type { LucideIcon } from "lucide-react";
 import { action, bootstrap } from "./api";
 import Knowledge, { KnowledgeStudy } from "./Knowledge";
 import { knowledgeProjection } from "./knowledgeProjection";
+import AvatarSettings, { Avatar } from "./AvatarSettings";
 import type { AppState, Capabilities, Problem, View } from "./types";
 import {
   dailyPlan,
@@ -258,7 +259,8 @@ export default function App() {
     const handler = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key === "k") {
         event.preventDefault();
-        if (document.querySelector('[role="dialog"][aria-modal="true"]')) return;
+        if (document.querySelector('[role="dialog"][aria-modal="true"]'))
+          return;
         navigate("knowledge");
         setTimeout(
           () => document.getElementById("knowledge-search")?.focus(),
@@ -298,7 +300,7 @@ export default function App() {
     return (
       <div className="boot-screen">
         <div className="brand-mark">
-          <Code2 />
+          <img src="/gugugaga-icon.png" alt="GuGuGaGa" />
         </div>
         <h1>连接本地服务失败</h1>
         <p>{error}</p>
@@ -314,7 +316,7 @@ export default function App() {
     return (
       <div className="boot-screen">
         <div className="brand-mark">
-          <Code2 />
+          <img src="/gugugaga-icon.png" alt="GuGuGaGa" />
         </div>
         <LoaderCircle className="spin" />
         <p>正在打开你的学习工作台…</p>
@@ -345,64 +347,66 @@ export default function App() {
       <aside className={"sidebar " + (sideOpen ? "open" : "")}>
         <button className="brand" onClick={() => navigate("today")}>
           <span className="brand-mark">
-            <Code2 size={19} />
+            <img src="/gugugaga-icon.png" alt="" />
           </span>
           <span>
-            CodeRecall<span className="brand-sub">任何知识，都值得记住</span>
+            GuGuGaGa<span className="brand-sub">任何知识，都值得记住</span>
           </span>
           <ChevronDown size={14} className="muted" />
         </button>
-        <button
-          className="quick-search"
-          onClick={() => {
-            navigate("knowledge");
-            setTimeout(
-              () => document.getElementById("knowledge-search")?.focus(),
-              80,
-            );
-          }}
-        >
-          <Search size={15} />
-          <span>搜索知识</span>
-          <kbd>⌃ K</kbd>
-        </button>
-        <div className="nav-label">工作空间</div>
-        <nav>
-          {navigation.map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              className={
-                "nav-item " +
-                (view === id && !selected && !selectedKnowledge ? "active" : "")
-              }
-              onClick={() => navigate(id)}
-            >
-              <Icon size={17} />
-              <span>{label}</span>
-              {id === "review" && due.length > 0 && (
-                <span className="nav-count">{due.length}</span>
-              )}
-              {id === "library" && <span className="nav-tiny">100</span>}
-            </button>
-          ))}
-        </nav>
-        <div className="sidebar-section">
-          <div className="nav-label">
-            我的学习计划 <MoreHorizontal size={15} />
-          </div>
-          <button className="plan-link" onClick={() => navigate("path")}>
-            <Folder size={16} />
-            <span>LeetCode Hot 100</span>
+        <div className="sidebar-scroll">
+          <button
+            className="quick-search"
+            onClick={() => {
+              navigate("knowledge");
+              setTimeout(
+                () => document.getElementById("knowledge-search")?.focus(),
+                80,
+              );
+            }}
+          >
+            <Search size={15} />
+            <span>搜索知识</span>
+            <kbd>⌃ K</kbd>
           </button>
-          <div className="sidebar-progress">
-            <span style={{ width: `${count}%` }} />
+          <div className="nav-label">工作空间</div>
+          <nav>
+            {navigation.map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                className={
+                  "nav-item " +
+                  (view === id && !selected && !selectedKnowledge
+                    ? "active"
+                    : "")
+                }
+                onClick={() => navigate(id)}
+              >
+                <Icon size={17} />
+                <span>{label}</span>
+                {id === "review" && due.length > 0 && (
+                  <span className="nav-count">{due.length}</span>
+                )}
+                {id === "library" && <span className="nav-tiny">100</span>}
+              </button>
+            ))}
+          </nav>
+          <div className="sidebar-section">
+            <div className="nav-label">
+              我的学习计划 <MoreHorizontal size={15} />
+            </div>
+            <button className="plan-link" onClick={() => navigate("path")}>
+              <Folder size={16} />
+              <span>LeetCode Hot 100</span>
+            </button>
+            <div className="sidebar-progress">
+              <span style={{ width: `${count}%` }} />
+            </div>
+            <div className="sidebar-progress-label">
+              <span>持续积累，直到掌握</span>
+              <span>{count}/100</span>
+            </div>
           </div>
-          <div className="sidebar-progress-label">
-            <span>持续积累，直到掌握</span>
-            <span>{count}/100</span>
-          </div>
-        </div>
-        <div className="sidebar-bottom">
           <div className="little-quote">
             <Sprout size={17} />
             <p>
@@ -411,6 +415,8 @@ export default function App() {
               变成自己的能力。
             </p>
           </div>
+        </div>
+        <div className="sidebar-bottom">
           <button
             className={"nav-item " + (view === "settings" ? "active" : "")}
             onClick={() => navigate("settings")}
@@ -424,14 +430,31 @@ export default function App() {
             <span className="nav-tiny">?</span>
           </button>
           <div className="profile">
-            <span className="avatar">K</span>
-            <div>
-              <strong>我的工作空间</strong>
-              <span>
-                <i className="status-dot" />
-                本地存储
+            <button
+              className="profile-account"
+              aria-label="编辑用户头像"
+              title="自定义用户头像"
+              onClick={() => {
+                navigate("settings");
+                requestAnimationFrame(() => {
+                  document
+                    .getElementById("avatar-heading")
+                    ?.scrollIntoView({ block: "center" });
+                  document
+                    .getElementById("avatar-heading")
+                    ?.focus({ preventScroll: true });
+                });
+              }}
+            >
+              <Avatar source={state.settings.avatar} />
+              <span className="profile-details">
+                <strong>我的工作空间</strong>
+                <span>
+                  <i className="status-dot" />
+                  本地存储
+                </span>
               </span>
-            </div>
+            </button>
             <button
               title="收起侧栏"
               className="icon-btn mobile-only"
@@ -598,8 +621,12 @@ export default function App() {
         {!selected && !selectedKnowledge && (
           <footer className="page-footer">
             <span>
-              <span className="mini-brand">⌘</span> CodeRecall{" "}
-              <span className="footer-dot">·</span> 把练习变成长期记忆
+              <img
+                className="mini-brand-image"
+                src="/gugugaga-icon.png"
+                alt=""
+              />{" "}
+              GuGuGaGa <span className="footer-dot">·</span> 把练习变成长期记忆
             </span>
             <span>
               专注当下这一小步 <Sprout size={13} />
@@ -631,7 +658,12 @@ export default function App() {
             >
               <X size={19} />
             </button>
-            <span className="eyebrow">WELCOME TO CODERECALL</span>
+            <img
+              className="guide-brand-image"
+              src="/gugugaga-icon.png"
+              alt="GuGuGaGa"
+            />
+            <span className="eyebrow">WELCOME TO GUGUGAGA</span>
             <h2>让每一份知识，成为你的能力。</h2>
             <div className="guide-step">
               <b>01</b>
@@ -1726,6 +1758,11 @@ function Settings({
         description="轻一点的目标，长一点的坚持。"
       />
       <div className="settings-grid">
+        <AvatarSettings
+          avatar={state.settings.avatar}
+          mutate={mutate}
+          notify={notify}
+        />
         <section className="panel settings-panel">
           <h2>
             <Target size={18} />
@@ -1838,10 +1875,7 @@ function Settings({
               <button
                 className="secondary"
                 onClick={() => {
-                  download(
-                    `CodeRecall-${dayKey()}.json`,
-                    JSON.stringify(state),
-                  );
+                  download(`GuGuGaGa-${dayKey()}.json`, JSON.stringify(state));
                   notify("备份已导出");
                 }}
               >
@@ -1901,7 +1935,7 @@ function Settings({
             关于这份学习工具
           </h2>
           <p>
-            CodeRecall
+            GuGuGaGa
             将专题学习与间隔重复结合。题解为独立编写，每题提供一套高效解法，并标明适用条件与复杂度；“最优”按常用计算模型与题目约束衡量。复习算法是透明启发式模型，不复现墨墨的专有算法。
           </p>
           <div className="source-links">

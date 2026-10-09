@@ -449,7 +449,7 @@ test("disabling Hot100 recommendations leaves a knowledge-only plan and keeps th
   expect((await state(request)).settings.includeHot100).toBe(false);
 });
 
-test("v2 backup download and confirmed restore retain knowledge, notes and solutions", async ({
+test("v2 backup download and confirmed restore retain knowledge, notes, solutions and avatar", async ({
   page,
   request,
 }) => {
@@ -462,7 +462,7 @@ test("v2 backup download and confirmed restore retain knowledge, notes and solut
     itemId: "qa-card",
     text: "备份中的个人笔记",
   });
-  const saved = await action(request, {
+  await action(request, {
     type: "solution",
     problemId: 1,
     language: "python",
@@ -474,6 +474,18 @@ test("v2 backup download and confirmed restore retain knowledge, notes and solut
     },
   });
   await page.goto("/#settings");
+  await page.getByLabel("上传用户头像", { exact: true }).setInputFiles({
+    name: "profile.png",
+    mimeType: "image/png",
+    buffer: Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC",
+      "base64",
+    ),
+  });
+  await page.getByRole("button", { name: "保存头像", exact: true }).click();
+  await expect(page.locator(".profile .avatar img")).toBeVisible();
+  const saved = await state(request);
+  expect(saved.settings.avatar).toMatch(/^data:image\/png;base64,/);
   const downloading = page.waitForEvent("download");
   await page.getByRole("button", { name: "导出备份", exact: true }).click();
   const downloaded = await downloading;
@@ -481,17 +493,21 @@ test("v2 backup download and confirmed restore retain knowledge, notes and solut
   expect(downloadedPath).not.toBeNull();
   const backup = JSON.parse(readFileSync(downloadedPath!, "utf8"));
   expect(backup).toEqual(saved);
+  expect(backup.settings.avatar).toBe(saved.settings.avatar);
   expect(backup.version).toBe(2);
   await action(request, {
     type: "import",
     state: structuredClone(initialState),
   });
   await page.reload();
-  await page.locator('input[type="file"]').setInputFiles({
-    name: "test-v2-backup.json",
-    mimeType: "application/json",
-    buffer: Buffer.from(JSON.stringify(backup)),
-  });
+  await expect(page.locator(".profile .avatar img")).toHaveCount(0);
+  await page
+    .locator('input[type="file"][accept="application/json,.json"]')
+    .setInputFiles({
+      name: "test-v2-backup.json",
+      mimeType: "application/json",
+      buffer: Buffer.from(JSON.stringify(backup)),
+    });
   await expect(
     page.getByRole("heading", { name: "导入这份学习备份？", exact: true }),
   ).toBeVisible();
@@ -501,6 +517,10 @@ test("v2 backup download and confirmed restore retain knowledge, notes and solut
     page.getByRole("heading", { name: "导入这份学习备份？", exact: true }),
   ).toHaveCount(0);
   expect(await state(request)).toEqual(saved);
+  await expect(page.locator(".profile .avatar img")).toHaveAttribute(
+    "src",
+    saved.settings.avatar,
+  );
   await page.goto("/#knowledge/qa-card");
   await expect(page.getByLabel("知识点学习笔记", { exact: true })).toHaveValue(
     "备份中的个人笔记",

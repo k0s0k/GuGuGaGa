@@ -147,7 +147,7 @@ def run(problem, payload):
     if language == "cpp" and not compiler():
         return {"status": "unavailable", "message": "尚未检测到 C++ 编译器。安装 g++ / clang++ 并加入 PATH，或设置 CODERECALL_CXX 为编译器完整路径，然后重新启动应用。题解、编辑与代码下载仍可使用。", "cases": []}
     if language == "python" and not python_capabilities()["available"]:
-        return {"status": "unavailable", "message": "Python 运行环境不可用。桌面版请保留 CodeRecall.exe 同目录的 _internal 文件夹，或重新解压完整软件包。", "cases": []}
+        return {"status": "unavailable", "message": "Python 运行环境不可用。桌面版请保留 GuGuGaGa.exe 同目录的 _internal 文件夹，或重新解压完整软件包。", "cases": []}
     custom = payload.get("stdin")
     if custom is not None and (not isinstance(custom, str) or len(custom) > 20000):
         raise ValueError("自定义输入最多 20 KB")
