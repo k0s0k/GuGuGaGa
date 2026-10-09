@@ -13,7 +13,6 @@ import {
   Bell,
   BookOpen,
   CalendarDays,
-  Check,
   CheckCheck,
   ChevronDown,
   ChevronLeft,
@@ -32,27 +31,24 @@ import {
   Moon,
   MoreHorizontal,
   PanelLeftClose,
-  Play,
   RotateCcw,
   Search,
   Settings2,
-  Sparkles,
   Sprout,
   Star,
   Sun,
   Target,
-  TrendingUp,
   Upload,
   X,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { action, bootstrap } from "./api";
 import Knowledge, { KnowledgeStudy } from "./Knowledge";
+import LearningDashboard from "./LearningDashboard";
 import { knowledgeProjection } from "./knowledgeProjection";
 import AvatarSettings, { Avatar } from "./AvatarSettings";
 import type { AppState, Capabilities, Problem, View } from "./types";
 import {
-  dailyPlan,
   dateShift,
   dayKey,
   download,
@@ -483,10 +479,15 @@ export default function App() {
             <strong>{title}</strong>
           </div>
           <div className="topbar-right">
-            <span className="local-status">
-              <i className="status-dot" />
-              已保存在本地
-            </span>
+            <button
+              className="topbar-streak"
+              title="查看连续打卡"
+              onClick={() => navigate("calendar")}
+            >
+              <Flame size={20} fill="currentColor" />
+              <strong>{streak(state)}</strong>
+              <span>天</span>
+            </button>
             <span className="top-divider" />
             <button
               className="icon-btn"
@@ -550,7 +551,7 @@ export default function App() {
         ) : (
           <main className="page-content">
             {view === "today" && (
-              <Today
+              <LearningDashboard
                 problems={projection.planned}
                 state={projection.state}
                 onOpen={openStudy}
@@ -774,333 +775,6 @@ function ProblemRow({
       </span>
       <ChevronRight className="row-arrow" size={16} />
     </button>
-  );
-}
-
-function Today({
-  problems,
-  state,
-  onOpen,
-  navigate,
-}: {
-  problems: Problem[];
-  state: AppState;
-  onOpen: (id: number) => void;
-  navigate: (view: View) => void;
-}) {
-  const [tab, setTab] = useState("全部任务");
-  const now = new Date(),
-    today = dayKey(now),
-    events = state.events.filter((e) => e.day === today),
-    done = new Set(events.map((e) => e.problemId)).size;
-  const due = problems.filter((p) => isDue(state.cards[p.id])),
-    plan = dailyPlan(problems, state),
-    filtered = plan.filter(
-      (p) =>
-        tab === "全部任务" ||
-        (tab === "待复习" ? !!state.cards[p.id] : !state.cards[p.id]),
-    );
-  const checked = state.checkins.includes(today),
-    learned = problems.filter((p) => state.cards[p.id]).length,
-    mastered = problems.filter(
-      (p) => state.cards[p.id]?.stability >= 21,
-    ).length;
-  const weekday = now.toLocaleDateString("zh-CN", { weekday: "long" });
-  const stats = [
-    {
-      label: "今日完成",
-      value: done,
-      suffix: `/ ${state.settings.dailyGoal} 项`,
-      icon: Target,
-      hint: checked
-        ? "今日已打卡，继续保持"
-        : `还差 ${Math.max(0, state.settings.dailyGoal - done)} 项完成目标`,
-      className: "green",
-    },
-    {
-      label: "待复习",
-      value: due.length,
-      suffix: "项",
-      icon: RotateCcw,
-      hint: due.length ? "让记忆在遗忘前再次加深" : "记忆状态良好，继续积累",
-      className: "",
-    },
-    {
-      label: "累计学习",
-      value: learned,
-      suffix: `/ ${problems.length} 项`,
-      icon: BookOpen,
-      hint: `${mastered} 项已进入长期记忆阶段`,
-      className: "",
-    },
-    {
-      label: "连续打卡",
-      value: streak(state),
-      suffix: "天",
-      icon: Flame,
-      hint: checked ? "今天的努力，已被记录" : "从今天开始，建立自己的节奏",
-      className: "",
-    },
-  ];
-  return (
-    <>
-      <PageHeading
-        eyebrow={`${now.getMonth() + 1} 月 ${now.getDate()} 日，${weekday}`}
-        title="让学过的，真正留下来。"
-        description="从一段代码到一门技能，先回忆，再巩固。"
-      >
-        <button
-          className="primary start-button"
-          onClick={() => (plan[0] ? onOpen(plan[0].id) : navigate("knowledge"))}
-        >
-          <Play size={15} fill="currentColor" />
-          {plan.length ? "开始今日学习" : "添加新的知识"}
-          <span className="button-shortcut">↗</span>
-        </button>
-      </PageHeading>
-      <div className="knowledge-banner">
-        <BookOpen size={25} />
-        <div>
-          <h3>建立自己的知识库</h3>
-          <p>
-            导入学习笔记，将 C++、英语、Blender 或 UE5
-            的知识拆成可回忆的小卡片。
-          </p>
-        </div>
-        <button className="secondary" onClick={() => navigate("knowledge")}>
-          管理知识库
-          <ArrowRight size={15} />
-        </button>
-      </div>
-      <div className="stat-grid">
-        {stats.map((s) => (
-          <section className="stat-card" key={s.label}>
-            <div className="stat-label">
-              {s.label}
-              <s.icon size={17} />
-            </div>
-            <div className={"stat-value " + s.className}>
-              {s.value}
-              <span>{s.suffix}</span>
-            </div>
-            <div className="stat-hint">
-              {s.label === "今日完成" && <i className="status-dot" />}
-              {s.hint}
-            </div>
-          </section>
-        ))}
-      </div>
-      <div className="dashboard-columns">
-        <div className="dashboard-primary">
-          <section className="panel today-panel">
-            <div className="panel-heading">
-              <div>
-                <h2>
-                  今日学习计划{" "}
-                  <span className="count-bubble">{plan.length}</span>
-                </h2>
-                <p>先巩固旧知，再探索新知。</p>
-              </div>
-              <button
-                className="text-button"
-                onClick={() => navigate("settings")}
-              >
-                <Settings2 size={14} />
-                调整计划
-              </button>
-            </div>
-            <div className="tabs-bar">
-              {["全部任务", "新知", "待复习"].map((t) => (
-                <button
-                  className={tab === t ? "selected" : ""}
-                  key={t}
-                  onClick={() => setTab(t)}
-                >
-                  {t}
-                  {t === "待复习" && <span>{due.length}</span>}
-                </button>
-              ))}
-              <span className="tabs-right">知识库 + Hot 100</span>
-            </div>
-            <div className="task-list">
-              {filtered.slice(0, 8).map((p, i) => (
-                <ProblemRow
-                  key={p.id}
-                  problem={p}
-                  state={state}
-                  number={i + 1}
-                  onOpen={onOpen}
-                />
-              ))}
-              {filtered.length === 0 && (
-                <Empty
-                  title={plan.length ? "这里暂时没有任务" : "今天的计划已完成"}
-                >
-                  {plan.length
-                    ? "换一个分类，继续今天的积累。"
-                    : "给自己一点时间消化，也可以去题库继续探索。"}
-                </Empty>
-              )}
-            </div>
-            <div className="panel-bottom">
-              <span>
-                <Sparkles size={14} />
-                复习任务随记忆反馈自动安排
-              </span>
-              <button
-                className="text-button"
-                onClick={() => navigate("knowledge")}
-              >
-                浏览我的知识 <ArrowRight size={14} />
-              </button>
-            </div>
-          </section>
-          {state.settings.includeHot100 !== false && (
-            <section className="panel roadmap-preview">
-              <div className="panel-heading">
-                <div>
-                  <h2>你的 Hot 100 之旅</h2>
-                  <p>沿着知识脉络，搭建完整的算法体系。</p>
-                </div>
-                <button
-                  className="icon-btn"
-                  title="查看知识路线"
-                  onClick={() => navigate("path")}
-                >
-                  <ArrowRight size={19} />
-                </button>
-              </div>
-              <div className="journey-progress">
-                <div className="journey-track">
-                  {Array.from({ length: 50 }, (_, i) => (
-                    <span
-                      key={i}
-                      className={
-                        i <
-                        problems.filter(
-                          (p) => !p.knowledgeId && state.cards[p.id],
-                        ).length /
-                          2
-                          ? "filled"
-                          : ""
-                      }
-                    />
-                  ))}
-                </div>
-                <span>
-                  <b>
-                    {
-                      problems.filter(
-                        (p) => !p.knowledgeId && state.cards[p.id],
-                      ).length
-                    }
-                  </b>{" "}
-                  / 100
-                </span>
-              </div>
-              <div className="journey-topics">
-                {["哈希表", "双指针", "滑动窗口", "链表"].map((cat, i) => (
-                  <button key={cat} onClick={() => navigate("path")}>
-                    <span className="topic-symbol">{categoryIcons[cat]}</span>
-                    <span>
-                      {cat}
-                      <small>
-                        {
-                          problems.filter(
-                            (p) => p.category === cat && state.cards[p.id],
-                          ).length
-                        }{" "}
-                        / {problems.filter((p) => p.category === cat).length} 题
-                      </small>
-                    </span>
-                    {i === 0 && <span className="small-tag">从这里开始</span>}
-                  </button>
-                ))}
-              </div>
-            </section>
-          )}
-        </div>
-        <aside className="dashboard-secondary">
-          <section className="panel memory-panel">
-            <div className="mini-section-title">
-              <span className="tint-icon">
-                <TrendingUp size={16} />
-              </span>
-              <h3>对抗遗忘，让记忆生长</h3>
-            </div>
-            <p>
-              在恰当的时间重逢，
-              <br />
-              比重复刷题更有意义。
-            </p>
-            <MemoryChart />
-            <div className="chart-legend">
-              <span>
-                <i />
-                复习后的记忆
-              </span>
-              <span>
-                <i className="dashed" />
-                自然遗忘
-              </span>
-            </div>
-            <div className="memory-tip">
-              <Sprout size={15} />
-              <span>每次主动回忆，都在延长记忆的寿命。</span>
-            </div>
-            <button className="text-button" onClick={() => navigate("review")}>
-              了解我的复习计划 <ArrowRight size={14} />
-            </button>
-          </section>
-          <section className="panel week-panel">
-            <div className="mini-section-title">
-              <h3>本周的每一小步</h3>
-              <span>
-                {
-                  state.checkins.filter(
-                    (d) =>
-                      d >= dayKey(dateShift(now, -((now.getDay() + 6) % 7))),
-                  ).length
-                }{" "}
-                天打卡
-              </span>
-            </div>
-            <div className="week-days">
-              {Array.from({ length: 7 }, (_, i) => {
-                const d = dateShift(now, i - ((now.getDay() + 6) % 7)),
-                  key = dayKey(d);
-                return (
-                  <div key={i} className={key === today ? "is-today" : ""}>
-                    <span>{["一", "二", "三", "四", "五", "六", "日"][i]}</span>
-                    <button
-                      onClick={() => navigate("calendar")}
-                      className={state.checkins.includes(key) ? "checked" : ""}
-                      title={key}
-                    >
-                      {state.checkins.includes(key) ? (
-                        <Check size={15} />
-                      ) : key === today ? (
-                        <span className="today-dot" />
-                      ) : (
-                        <span className="week-dash">·</span>
-                      )}
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="week-note">
-              <Flame size={14} />
-              {checked ? "今天也有好好积累。" : "点亮今天，从一道题开始。"}
-            </div>
-          </section>
-        </aside>
-      </div>
-      <div className="quiet-note">
-        <span>LESS, BUT BETTER.</span>
-        <p>刷题是一场长跑。按自己的节奏，慢慢来。</p>
-      </div>
-    </>
   );
 }
 

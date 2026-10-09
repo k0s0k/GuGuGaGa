@@ -42,6 +42,13 @@ import type {
 import { dailyPlan, dayKey, download, dueLabel, ratingLabels } from "./utils";
 import Markdown from "./Markdown";
 import { codeEditingExtensions } from "./editorExtensions";
+import {
+  confirmedStudy,
+  RatingSymbol,
+  StudyFeedback,
+  StudyProgress,
+} from "./StudyFeedback";
+import type { ConfirmedStudy } from "./StudyFeedback";
 import "./workspace-upgrade.css";
 
 interface Props {
@@ -84,6 +91,8 @@ export default function Workspace({
     [ratingBusy, setRatingBusy] = useState(false),
     [confirmReset, setConfirmReset] = useState(false),
     [expanded, setExpanded] = useState(false);
+  const [feedback, setFeedback] = useState<ConfirmedStudy | null>(null),
+    [ratingError, setRatingError] = useState("");
   const draftTimer = useRef<ReturnType<typeof setTimeout> | null>(null),
     noteTimer = useRef<ReturnType<typeof setTimeout> | null>(null),
     pendingDraft = useRef<{
@@ -271,6 +280,7 @@ export default function Workspace({
     if (ratingInFlight.current) return;
     ratingInFlight.current = true;
     setRatingBusy(true);
+    setRatingError("");
     pendingRating.current ??= {
       type: "rate",
       problemId: id,
@@ -282,6 +292,9 @@ export default function Workspace({
     try {
       const pending = pendingRating.current;
       const next = await mutate(pending);
+      setFeedback(
+        confirmedStudy(state, next, pending.rating, dueLabel(next.cards[id])),
+      );
       setRating(pending.rating);
       pendingRating.current = null;
       seconds.current = 0;
@@ -289,6 +302,7 @@ export default function Workspace({
         `已记录 · ${dueLabel(next.cards[id])}${next.checkins.includes(dayKey()) ? " · 今日已打卡" : ""}`,
       );
     } catch {
+      setRatingError("这次反馈还未保存，请点击下方按钮重试。");
       notify("反馈尚未确认，请重试。");
     } finally {
       ratingInFlight.current = false;
@@ -369,6 +383,7 @@ export default function Workspace({
           </button>
         </div>
       </div>
+      <StudyProgress state={state} />
       <div className="workspace-split">
         <section className="question-pane">
           <div className="workspace-tabs">
@@ -552,6 +567,7 @@ export default function Workspace({
             )}
           </div>
           <div className="memory-feedback">
+            {feedback && <StudyFeedback feedback={feedback} />}
             <div className="feedback-title">
               <span>
                 <Sparkles size={15} />
@@ -561,6 +577,11 @@ export default function Workspace({
               </span>
               {rating && <span>{dueLabel(state.cards[id])}</span>}
             </div>
+            {ratingError && (
+              <p className="knowledge-error" role="alert">
+                {ratingError}
+              </p>
+            )}
             {rating ? (
               <div className="feedback-done">
                 <span>
@@ -576,7 +597,7 @@ export default function Workspace({
                 </button>
               </div>
             ) : (
-              <div className="rating-buttons">
+              <div className="rating-buttons study-rating-buttons">
                 {(["again", "hard", "good", "easy"] as Rating[]).map((r) => (
                   <button
                     key={r}
@@ -584,6 +605,7 @@ export default function Workspace({
                     className={"rate-" + r}
                     onClick={() => void rate(r)}
                   >
+                    <RatingSymbol rating={r} />
                     <span>{ratingLabels[r]}</span>
                     <small>
                       {r === "again"
@@ -894,9 +916,7 @@ export default function Workspace({
               )}
             </div>
           </div>
-          <div className="runner-footnote">
-            本地样例测试 · 请运行可信代码
-          </div>
+          <div className="runner-footnote">本地样例测试 · 请运行可信代码</div>
         </section>
       </div>
       {confirmReset && (
@@ -1299,9 +1319,7 @@ function ProblemSolution({
         </>
       ) : (
         <div className="solution-personal-empty">
-          <p>
-            从内置题解开始，写下更适合自己的解法。
-          </p>
+          <p>从内置题解开始，写下更适合自己的解法。</p>
           <button className="primary small" onClick={begin}>
             从内置题解开始编辑
           </button>

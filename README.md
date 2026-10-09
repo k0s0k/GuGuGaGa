@@ -19,13 +19,16 @@
 
 ## 屏幕截图
 
-![GuGuGaGa 今日学习界面（示例数据）](docs/images/overview.png)
+| 每日学习旅程 | 知识卡复习 |
+| --- | --- |
+| ![GuGuGaGa 学习旅程（示例数据）](docs/images/overview.png) | ![GuGuGaGa 知识卡复习（示例数据）](docs/images/study.png) |
 
 ## 功能
 
 - [x] 按主题管理知识库，创建问答、填空与实践步骤卡片
 - [x] Markdown / TXT 笔记拆分，AI 提炼知识点，导入前预览和编辑
 - [x] 四档记忆反馈、到期复习与每日学习计划
+- [x] 学习旅程节点、立体按钮、答案展开与目标达成反馈
 - [x] 每日目标、自动打卡、连续记录与日历
 - [x] LeetCode Hot100 专题练习，Python / C++ 本地运行
 - [x] 自定义简洁题解、注释题解与完整解析
@@ -35,7 +38,7 @@
 
 ## 安装与使用
 
-当前桌面构建位于 **`release/GuGuGaGa-v2.1.2/`**。
+当前桌面构建位于 **`release/GuGuGaGa-v2.2.0/`**。
 
 1. 打开其中的 **`GuGuGaGa.exe`**；运行 `create-shortcut.cmd` 可创建桌面快捷方式。
 2. 在「我的知识库」创建主题与卡片，或导入笔记；算法练习进入 Hot100 题库。

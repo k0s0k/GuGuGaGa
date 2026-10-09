@@ -37,7 +37,7 @@ APP_NAME = "GuGuGaGa"
 # Keep the v2 activation protocol and data directory compatible with CodeRecall.
 APP_ID = "CodeRecall.Desktop.2"
 WINDOWS_APP_ID = "GuGuGaGa.Desktop"
-VERSION = "2.1.2"
+VERSION = "2.2.0"
 LOGGER = logging.getLogger("coderecall.desktop")
 
 
@@ -183,7 +183,7 @@ def native_window(service: DesktopService, directory: Path, smoke_report: Path |
         while time.monotonic() < deadline and not finished.is_set():
             try:
                 text = window.evaluate_js("document.body.innerText") or ""
-                if "今日学习计划" in text and "Hot 100" in text:
+                if "每日旅程" in text and "Hot 100" in text:
                     outcome.update(passed=True, title=window.evaluate_js("document.title"), hasDashboard=True)
                     break
             except Exception:

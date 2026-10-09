@@ -32,6 +32,13 @@ import { splitDocument, validateDocument } from "./api";
 import { dayKey, download, dueLabel, isDue, ratingLabels } from "./utils";
 import Markdown from "./Markdown";
 import { knowledgeSamples } from "./knowledgeSamples";
+import {
+  confirmedStudy,
+  RatingSymbol,
+  StudyFeedback,
+  StudyProgress,
+} from "./StudyFeedback";
+import type { ConfirmedStudy } from "./StudyFeedback";
 import "./knowledge.css";
 
 interface Shared {
@@ -584,7 +591,8 @@ export function ImportKnowledge({
                     </label>
                   </div>
                   <p className="knowledge-hint">
-                    使用 Chat Completions 接口发送文档，费用按服务商计费。生成后可预览编辑。
+                    使用 Chat Completions
+                    接口发送文档，费用按服务商计费。生成后可预览编辑。
                   </p>
                 </div>
               )}
@@ -1182,6 +1190,8 @@ export function KnowledgeStudy({
     [edit, setEdit] = useState(false),
     [busy, setBusy] = useState(false),
     [rated, setRated] = useState(false);
+  const [feedback, setFeedback] = useState<ConfirmedStudy | null>(null),
+    [ratingError, setRatingError] = useState("");
   const [note, setNote] = useState(
     () =>
       localStorage.getItem(`coderecall-knowledge-note-${id}`) ??
@@ -1203,6 +1213,33 @@ export function KnowledgeStudy({
     }, 1000);
     return () => clearInterval(timer);
   }, []);
+  useEffect(() => {
+    if (revealed || edit || !item) return;
+    const revealOnSpace = (event: KeyboardEvent) => {
+      if (
+        event.code !== "Space" ||
+        event.repeat ||
+        event.defaultPrevented ||
+        event.ctrlKey ||
+        event.metaKey ||
+        event.altKey ||
+        event.shiftKey
+      )
+        return;
+      const target = event.target;
+      if (
+        target instanceof HTMLElement &&
+        target.closest(
+          'input, textarea, select, button, a, summary, [contenteditable]:not([contenteditable="false"]), [role="textbox"], [role="button"], [role="dialog"]',
+        )
+      )
+        return;
+      event.preventDefault();
+      setRevealed(true);
+    };
+    window.addEventListener("keydown", revealOnSpace);
+    return () => window.removeEventListener("keydown", revealOnSpace);
+  }, [revealed, edit, item]);
   const saveNote = async () => {
     const value = note;
     try {
@@ -1219,6 +1256,7 @@ export function KnowledgeStudy({
     if (inFlight.current) return;
     inFlight.current = true;
     setBusy(true);
+    setRatingError("");
     pending.current ??= {
       type: "knowledge-rate",
       itemId: id,
@@ -1229,6 +1267,14 @@ export function KnowledgeStudy({
     };
     try {
       const next = await mutate(pending.current);
+      setFeedback(
+        confirmedStudy(
+          state,
+          next,
+          pending.current.rating as Rating,
+          dueLabel(next.knowledgeCards[id]),
+        ),
+      );
       pending.current = null;
       seconds.current = 0;
       setRated(true);
@@ -1236,6 +1282,7 @@ export function KnowledgeStudy({
         `已记录 · ${dueLabel(next.knowledgeCards[id])}${next.checkins.includes(dayKey()) ? " · 今日已打卡" : ""}`,
       );
     } catch {
+      setRatingError("这次反馈还未保存，请点击下方按钮重试。");
       notify("记忆反馈尚未确认，请重试。");
     } finally {
       inFlight.current = false;
@@ -1306,6 +1353,7 @@ export function KnowledgeStudy({
           </button>
         </div>
       </div>
+      <StudyProgress state={state} />
       <div className="knowledge-study-columns">
         <article className="panel knowledge-recall-card">
           <div className="knowledge-card-meta">
@@ -1334,13 +1382,20 @@ export function KnowledgeStudy({
                   ? "先独立完成操作，再对照验收清单。"
                   : "先尝试回忆，用自己的话说出答案。"}
               </p>
-              <button className="primary" onClick={() => setRevealed(true)}>
+              <button
+                className="primary"
+                aria-keyshortcuts="Space"
+                onClick={() => setRevealed(true)}
+              >
                 <BookOpen size={16} />
                 {item.kind === "procedure" ? "查看验收清单" : "显示答案"}
               </button>
+              <small className="study-reveal-hint">
+                也可以按 <kbd>Space</kbd> 展开
+              </small>
             </div>
           ) : (
-            <div className="knowledge-answer">
+            <div className="knowledge-answer study-answer-revealed">
               <span className="eyebrow">
                 {item.kind === "procedure" ? "验收清单" : "我的参考答案"}
               </span>
@@ -1355,7 +1410,12 @@ export function KnowledgeStudy({
                       ? "已记录这次学习。准备好后继续下一个。"
                       : "回忆得怎么样？按真实感受安排下次复习。"}
                   </p>
-                  <div>
+                  {ratingError && (
+                    <p className="knowledge-error" role="alert">
+                      {ratingError}
+                    </p>
+                  )}
+                  <div className="study-rating-buttons">
                     {(Object.keys(ratingLabels) as Rating[]).map((r) => (
                       <button
                         className={`rating-button ${r}`}
@@ -1363,6 +1423,7 @@ export function KnowledgeStudy({
                         disabled={busy || rated}
                         onClick={() => void rate(r)}
                       >
+                        <RatingSymbol rating={r} />
                         <strong>{ratingLabels[r]}</strong>
                         <small>
                           {r === "again" ? "10 分钟后再学" : "按记忆状态安排"}
@@ -1372,6 +1433,7 @@ export function KnowledgeStudy({
                   </div>
                 </div>
               )}
+              {feedback && <StudyFeedback feedback={feedback} />}
               {rated && (
                 <div className="knowledge-actions">
                   <button className="secondary" onClick={onBack}>
@@ -1399,9 +1461,7 @@ export function KnowledgeStudy({
             </button>
           </div>
           {noteView ? (
-            <Markdown>
-              {note || "记录你的理解、易错点和实践结果。"}
-            </Markdown>
+            <Markdown>{note || "记录你的理解、易错点和实践结果。"}</Markdown>
           ) : (
             <textarea
               aria-label="知识点学习笔记"
