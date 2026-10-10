@@ -18,18 +18,6 @@
 - macOS 14+ 桌面版：Apple Silicon / Intel，打开 `.dmg` 后拖入「应用程序」。
 - 本地浏览器：从源码启动后访问学习界面。
 
-## 下载
-
-当前版本 **v2.5.0**，请选择对应系统和芯片：
-
-| 平台 | 下载 |
-| --- | --- |
-| Windows x64 | [下载 ZIP](https://github.com/k0s0k/GuGuGaGa/releases/download/macos-v2.5.0/GuGuGaGa-v2.5.0-windows-x64.zip) |
-| macOS · Apple Silicon（M 系列） | [下载 DMG](https://github.com/k0s0k/GuGuGaGa/releases/download/macos-v2.5.0/GuGuGaGa-v2.5.0-macos-arm64.dmg) |
-| macOS · Intel | [下载 DMG](https://github.com/k0s0k/GuGuGaGa/releases/download/macos-v2.5.0/GuGuGaGa-v2.5.0-macos-x86_64.dmg) |
-
-[查看全部发布文件与版本说明](https://github.com/k0s0k/GuGuGaGa/releases)
-
 ## 屏幕截图
 
 | 每日学习旅程                                               | 知识卡复习                                                |
@@ -65,6 +53,18 @@ macOS：下载对应芯片的 DMG，打开后将 **GuGuGaGa** 拖入 **Applicati
 Python 已内置。Mac 上运行 C++ 时，在终端执行一次 `xcode-select --install` 安装 Apple Command Line Tools，完成后重新打开软件。
 
 升级前退出旧版，再打开新版，学习数据会继续沿用。Windows 与 Mac 之间可通过「偏好设置」中的完整备份迁移数据。
+
+### 下载
+
+当前版本 **v2.5.0**，请选择对应系统和芯片：
+
+| 平台 | 下载 |
+| --- | --- |
+| Windows x64 | [下载 ZIP](https://github.com/k0s0k/GuGuGaGa/releases/download/macos-v2.5.0/GuGuGaGa-v2.5.0-windows-x64.zip) |
+| macOS · Apple Silicon（M 系列） | [下载 DMG](https://github.com/k0s0k/GuGuGaGa/releases/download/macos-v2.5.0/GuGuGaGa-v2.5.0-macos-arm64.dmg) |
+| macOS · Intel | [下载 DMG](https://github.com/k0s0k/GuGuGaGa/releases/download/macos-v2.5.0/GuGuGaGa-v2.5.0-macos-x86_64.dmg) |
+
+[查看全部发布文件与版本说明](https://github.com/k0s0k/GuGuGaGa/releases)
 
 ### 开始学习
 
