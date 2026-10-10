@@ -57,6 +57,7 @@ class DesktopSupportTests(unittest.TestCase):
     def test_macos_directory(self):
         with patch.object(desktop_support.sys, 'platform', 'darwin'), patch.object(Path, 'home', return_value=self.root):
             self.assertEqual(desktop_support.data_directory(), self.root / 'Library' / 'Application Support' / 'CodeRecall')
+            self.assertEqual(desktop_support.data_directory('CodeRecall-v2'), self.root / 'Library' / 'Application Support' / 'CodeRecall-v2')
 
     def test_valid_database_is_copied_and_source_preserved(self):
         state = copy.deepcopy(DEFAULT_STATE)

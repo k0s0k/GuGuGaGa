@@ -1,4 +1,4 @@
-"""GuGuGaGa Windows desktop entry point.
+"""GuGuGaGa native desktop entry point for Windows and macOS.
 
 Run from source: python desktop.py
 Frozen builds include an independent Python interpreter for submitted programs.
@@ -54,11 +54,25 @@ def configure_logging(directory: Path):
 
 
 class InstanceMutex:
-    """A per-user-data-directory Windows singleton with kernel-owned cleanup."""
+    """A per-data-directory singleton released by the OS when the process exits."""
     def __init__(self, directory: Path):
         self.handle = None
+        self.lock_file = None
         self.is_owner = True
         if os.name != "nt":
+            import fcntl
+            directory.mkdir(parents=True, exist_ok=True)
+            self.lock_file = (directory / "instance.lock").open("a+b")
+            try:
+                fcntl.flock(self.lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError:
+                self.is_owner = False
+                self.lock_file.close()
+                self.lock_file = None
+            except BaseException:
+                self.lock_file.close()
+                self.lock_file = None
+                raise
             return
         self.kernel = ctypes.WinDLL("kernel32", use_last_error=True)
         self.kernel.CreateMutexW.argtypes = [ctypes.c_void_p, wintypes.BOOL, wintypes.LPCWSTR]
@@ -75,6 +89,11 @@ class InstanceMutex:
         if self.handle:
             self.kernel.CloseHandle(self.handle)
             self.handle = None
+        if self.lock_file is not None:
+            self.lock_file.close()
+            self.lock_file = None
+            # Keep the lock file: unlinking it can create two independently
+            # locked inodes when another process is waiting to open the app.
 
 
 def activate_existing(marker: Path, timeout=8.0):
@@ -163,6 +182,14 @@ class DesktopService:
             pass
 
 
+def native_icon():
+    if sys.platform == "darwin":
+        return resource_root() / "packaging" / "GuGuGaGa.icns"
+    if sys.platform == "win32":
+        return resource_root() / "packaging" / "GuGuGaGa.ico"
+    return resource_root() / "dist" / "gugugaga-icon.png"
+
+
 def native_window(service: DesktopService, directory: Path, smoke_report: Path | None = None):
     import webview
     webview.settings["ALLOW_DOWNLOADS"] = True
@@ -173,11 +200,12 @@ def native_window(service: DesktopService, directory: Path, smoke_report: Path |
         background_color="#211e19", hidden=smoke_report is not None,
     )
     service.on_activate = lambda: (window.restore(), window.show())
-    outcome = {"passed": False, "renderer": "edgechromium", "version": VERSION}
+    renderer = "cocoa" if sys.platform == "darwin" else "edgechromium" if sys.platform == "win32" else None
+    outcome = {"passed": False, "renderer": renderer, "version": VERSION}
     finished = threading.Event()
 
     def verify_page():
-        # A developer-only smoke test of the real bundled WebView2 engine.
+        # A developer-only smoke test of the actual native WebView engine.
         # Normal launches never execute this verification or close themselves.
         deadline = time.monotonic() + 25
         while time.monotonic() < deadline and not finished.is_set():
@@ -209,7 +237,7 @@ def native_window(service: DesktopService, directory: Path, smoke_report: Path |
 
         def watchdog():
             if not finished.wait(timeout=40):
-                outcome["error"] = "WebView2 page did not become ready within 40 seconds"
+                outcome["error"] = "Native webview page did not become ready within 40 seconds"
                 finished.set()
                 try:
                     window.destroy()
@@ -217,9 +245,9 @@ def native_window(service: DesktopService, directory: Path, smoke_report: Path |
                     LOGGER.exception("Could not close the smoke-test window")
         threading.Thread(target=watchdog, daemon=True).start()
     try:
-        webview.start(gui="edgechromium", debug=False, private_mode=False,
+        webview.start(gui=renderer, debug=False, private_mode=False,
                       storage_path=str(directory / "webview"),
-                      icon=str(resource_root() / "packaging" / "GuGuGaGa.ico"))
+                      icon=str(native_icon()))
     finally:
         finished.set()
         if smoke_report:
@@ -230,7 +258,24 @@ def native_window(service: DesktopService, directory: Path, smoke_report: Path |
 
 
 def browser_fallback(service: DesktopService, directory: Path):
-    """A usable fallback when Windows WebView2 is unavailable."""
+    """Keep a native control window alive while the workspace runs in a browser."""
+    if sys.platform == "darwin":
+        # Cocoa is already a desktop dependency; do not require a second GUI
+        # framework merely to keep the browser fallback running on macOS.
+        from AppKit import NSAlert, NSAlertFirstButtonReturn, NSApplication
+        from PyObjCTools import AppHelper
+        application = NSApplication.sharedApplication()
+        alert = NSAlert.alloc().init()
+        alert.setMessageText_(f"{APP_NAME} 正在运行")
+        alert.setInformativeText_("当前使用浏览器打开工作台。点击「退出」即可关闭软件。")
+        alert.addButtonWithTitle_("打开学习工作台")
+        alert.addButtonWithTitle_("退出")
+        service.on_activate = lambda: AppHelper.callAfter(application.activateIgnoringOtherApps_, True)
+        webbrowser.open(service.url)
+        application.activateIgnoringOtherApps_(True)
+        while alert.runModal() == NSAlertFirstButtonReturn:
+            webbrowser.open(service.url)
+        return
     import tkinter as tk
     from tkinter import ttk
     root = tk.Tk()
@@ -238,13 +283,14 @@ def browser_fallback(service: DesktopService, directory: Path):
     root.geometry("440x270")
     root.resizable(False, False)
     root.configure(background="#f4f5f1")
-    icon = resource_root() / "packaging" / "GuGuGaGa.ico"
-    if icon.is_file():
+    icon = native_icon()
+    if sys.platform == "win32" and icon.is_file():
         root.iconbitmap(str(icon))
     tk.Label(root, text=f"{APP_NAME} 正在运行", font=("Microsoft YaHei UI", 17, "bold"), background="#f4f5f1", foreground="#2e4234").pack(pady=(30, 15))
     tk.Label(root, text="当前使用浏览器打开工作台。\n关闭此窗口即可退出软件。", font=("Microsoft YaHei UI", 10), background="#f4f5f1", foreground="#667260", justify="center").pack(pady=7)
     ttk.Button(root, text="打开学习工作台", command=lambda: webbrowser.open(service.url)).pack(pady=13)
-    tk.Label(root, text="独立窗口需要 Microsoft Edge WebView2 Runtime", font=("Microsoft YaHei UI", 8), background="#f4f5f1", foreground="#86917f").pack()
+    hint = "独立窗口需要 Microsoft Edge WebView2 Runtime" if sys.platform == "win32" else "工作台已在本机浏览器中运行"
+    tk.Label(root, text=hint, font=("Microsoft YaHei UI", 8), background="#f4f5f1", foreground="#86917f").pack()
     root.after(100, lambda: webbrowser.open(service.url))
     def focus():
         root.after(0, lambda: (root.deiconify(), root.lift(), root.focus_force()))
@@ -272,7 +318,7 @@ def self_test(report_path: Path):
                 connection.request("GET", "/gugugaga-icon.png")
                 response = connection.getresponse()
                 assert response.status == 200 and response.read().startswith(b"\x89PNG\r\n\x1a\n"), "Packaged icon is missing"
-                assert (resource_root() / "packaging" / "GuGuGaGa.ico").is_file(), "Native icon is missing"
+                assert native_icon().is_file(), "Native icon is missing"
                 report["checks"].append("application_branding_and_icon")
                 connection.request("GET", "/api/bootstrap")
                 response = connection.getresponse()
@@ -369,6 +415,18 @@ def show_error(message: str):
     LOGGER.error(message)
     if os.name == "nt":
         ctypes.windll.user32.MessageBoxW(None, message, f"{APP_NAME} 无法启动", 0x10)
+    elif sys.platform == "darwin":
+        try:
+            from AppKit import NSAlert, NSApplication
+            application = NSApplication.sharedApplication()
+            alert = NSAlert.alloc().init()
+            alert.setMessageText_(f"{APP_NAME} 无法启动")
+            alert.setInformativeText_(message)
+            alert.addButtonWithTitle_("好")
+            application.activateIgnoringOtherApps_(True)
+            alert.runModal()
+        except Exception:
+            LOGGER.exception("Could not display the native error dialog")
     elif sys.stderr:
         print(message, file=sys.stderr)
 
@@ -377,8 +435,8 @@ def main():
     parser = argparse.ArgumentParser(description=f"{APP_NAME} desktop")
     parser.add_argument("--data-dir", type=Path, help="Use an alternate local data directory")
     parser.add_argument("--self-test", type=Path, metavar="REPORT_JSON", help="Verify packaged runtime without opening a window")
-    parser.add_argument("--gui-smoke-test", type=Path, metavar="REPORT_JSON", help="Verify WebView2 in a hidden window")
-    parser.add_argument("--browser", action="store_true", help="Use a browser window instead of WebView2")
+    parser.add_argument("--gui-smoke-test", type=Path, metavar="REPORT_JSON", help="Verify the native webview in a hidden window")
+    parser.add_argument("--browser", action="store_true", help="Use a browser window instead of the native webview")
     args = parser.parse_args()
     if args.self_test:
         configure_logging(args.self_test.resolve().parent)
@@ -395,7 +453,8 @@ def main():
     service = None
     try:
         if not (resource_root() / "dist" / "index.html").is_file():
-            raise FileNotFoundError("缺少界面资源。请保留 GuGuGaGa.exe 与 _internal 文件夹在同一目录。")
+            hint = "请重新将完整的 GuGuGaGa.app 拖入「应用程序」。" if sys.platform == "darwin" else "请保留 GuGuGaGa.exe 与 _internal 文件夹在同一目录。"
+            raise FileNotFoundError("缺少界面资源。" + hint)
         if not args.gui_smoke_test and not args.data_dir:
             candidates = [app_dir() / ".local" / "coderecall-v2.db", app_dir().parent.parent / ".local" / "coderecall-v2.db", directory.parent / "CodeRecall" / "coderecall.db", app_dir() / ".local" / "coderecall.db", app_dir().parent.parent / ".local" / "coderecall.db"]
             migrated = migrate_legacy_database(directory / "coderecall.db", candidates)

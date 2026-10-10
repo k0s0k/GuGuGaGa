@@ -1,0 +1,119 @@
+name: Build macOS application
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    tags: ['macos-v*']
+    paths:
+      - '.github/workflows/macos.yml'
+      - 'desktop.py'
+      - 'desktop_support.py'
+      - 'server/**'
+      - 'src/**'
+      - 'public/**'
+      - 'tests/**'
+      - 'scripts/build-macos*'
+      - 'scripts/collect-frontend-licenses.py'
+      - 'scripts/verify_content.py'
+      - 'packaging/GuGuGaGa-macos.spec'
+      - 'packaging/THIRD-PARTY-MACOS.txt'
+      - 'requirements-macos.txt'
+      - 'package*.json'
+      - 'vite.config.ts'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: macos-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: macOS ${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-14
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x86_64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13.9'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Check native compiler
+        run: |
+          test "$(uname -m)" = '${{ matrix.arch }}'
+          xcrun --find clang++
+          clang++ --version
+      - name: Install and build frontend
+        run: |
+          npm ci
+          npm run build
+      - name: Test backend and platform integration
+        run: python -m unittest discover -s tests -v
+      - name: Build, relocate, test native app, and create DMG
+        run: bash scripts/build-macos.sh --skip-frontend
+      - name: Verify all C++ answers with Apple clang
+        run: python scripts/verify_content.py --languages cpp --styles brief annotated --report .local/macos/reports/cpp-content.json
+      - name: Upload verified installers
+        uses: actions/upload-artifact@v4
+        with:
+          name: GuGuGaGa-macos-${{ matrix.arch }}
+          path: release/GuGuGaGa-*-macos-${{ matrix.arch }}/*
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-diagnostics-${{ matrix.arch }}
+          path: |
+            .local/macos/reports/**/*.json
+            .local/macos/reports/**/*.log
+            .local/macos/pyinstaller/**/warn-*.txt
+          if-no-files-found: ignore
+          retention-days: 14
+
+  publish:
+    name: Publish macOS release
+    if: startsWith(github.ref, 'refs/tags/macos-v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: GuGuGaGa-macos-*
+          path: installers
+      - name: Publish verified packages
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          cat > release-notes.md <<'EOF'
+          GuGuGaGa macOS 版，支持 Apple Silicon 和 Intel Mac（macOS 14 或更新版本）。
+
+          - Apple Silicon（M 系列）：下载 arm64.dmg。
+          - Intel：下载 x86_64.dmg。
+          - 打开 DMG，将 GuGuGaGa.app 拖入 Applications 文件夹。
+          - Python 已内置。运行 C++ 请先安装 Xcode Command Line Tools：`xcode-select --install`。
+          - 应用采用临时签名，尚未经 Apple 公证。首次打开如遇提示，请在“系统设置 → 隐私与安全性”中选择“仍要打开”。
+
+          每种架构均通过后端测试、完整 C++ 题解验证、打包后的功能测试和原生窗口测试。
+          EOF
+          (cd installers && sha256sum */*.dmg */*.zip) | sed 's@  [^/]*/@  @' > SHA256SUMS.txt
+          gh release create "$RELEASE_TAG" --verify-tag --title "GuGuGaGa ${RELEASE_TAG#macos-} · macOS" --notes-file release-notes.md installers/*/*.dmg installers/*/*.zip SHA256SUMS.txt

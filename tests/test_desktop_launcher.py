@@ -1,4 +1,4 @@
-"""Exercise the desktop HTTP service and Windows singleton without opening a GUI."""
+"""Exercise the HTTP service and native desktop selection without opening a GUI."""
 from contextlib import ExitStack
 import http.client
 from http.server import BaseHTTPRequestHandler
@@ -7,10 +7,12 @@ import os
 from pathlib import Path
 import tempfile
 import threading
+import subprocess
+import sys
 import unittest
 from unittest.mock import Mock, patch
 
-from desktop import APP_ID, DesktopService, InstanceMutex, activate_existing
+from desktop import APP_ID, DesktopService, InstanceMutex, activate_existing, native_icon, native_window
 from server.app import LocalHTTPServer
 
 
@@ -137,7 +139,6 @@ class DesktopServiceTests(unittest.TestCase):
         self.assertEqual(request(service.port, "/assets/test.js"), (200, "window.packagedAsset = true;"))
 
 
-@unittest.skipUnless(os.name == "nt", "Windows named mutex lifecycle")
 class InstanceMutexTests(unittest.TestCase):
     def test_second_instance_cannot_own_mutex_and_release_allows_restart(self):
         with tempfile.TemporaryDirectory() as directory, ExitStack() as stack:
@@ -164,6 +165,51 @@ class InstanceMutexTests(unittest.TestCase):
             stack.callback(second.close)
             self.assertTrue(first.is_owner)
             self.assertTrue(second.is_owner)
+
+    @unittest.skipIf(os.name == "nt", "POSIX flock lifecycle")
+    def test_process_exit_releases_lock_without_deleting_lock_file(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            child = subprocess.Popen(
+                [sys.executable, "-c", "from desktop import InstanceMutex; from pathlib import Path; import sys,time; "
+                 "lock=InstanceMutex(Path(sys.argv[1])); print(lock.is_owner, flush=True); time.sleep(60)", str(root)],
+                stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+            )
+            try:
+                self.assertEqual(child.stdout.readline().strip(), "True")
+                blocked = InstanceMutex(root)
+                self.addCleanup(blocked.close)
+                self.assertFalse(blocked.is_owner)
+            finally:
+                child.kill()
+                child.communicate(timeout=5)
+            self.assertTrue((root / "instance.lock").is_file())
+            restarted = InstanceMutex(root)
+            self.addCleanup(restarted.close)
+            self.assertTrue(restarted.is_owner)
+            restarted.close()
+
+
+class NativeWindowTests(unittest.TestCase):
+    def test_native_renderer_and_icon_follow_platform(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for platform, renderer, extension in (("darwin", "cocoa", ".icns"), ("win32", "edgechromium", ".ico")):
+                with self.subTest(platform=platform), patch("desktop.sys.platform", platform), \
+                        patch("desktop.resource_root", return_value=root):
+                    webview = Mock()
+                    webview.settings = {}
+                    service = Mock(url="http://127.0.0.1:8767")
+                    with patch.dict(sys.modules, {"webview": webview}):
+                        native_window(service, root / "user-data")
+                    self.assertEqual(native_icon(), root / "packaging" / ("GuGuGaGa" + extension))
+                    self.assertEqual(webview.start.call_args.kwargs["gui"], renderer)
+                    self.assertEqual(webview.start.call_args.kwargs["icon"], str(native_icon()))
+                    self.assertFalse(webview.start.call_args.kwargs["private_mode"])
+                    self.assertTrue(webview.settings["ALLOW_DOWNLOADS"])
+                    service.on_activate()
+                    webview.create_window.return_value.restore.assert_called_once()
+                    webview.create_window.return_value.show.assert_called_once()
 
 
 if __name__ == "__main__":

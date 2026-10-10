@@ -1,0 +1,9 @@
+# Build on macOS with Python 3.13. Cocoa/WKWebView is supplied by macOS.
+PyInstaller==6.22.3
+pywebview==6.2.1
+pyobjc-core==11.1
+pyobjc-framework-Cocoa==11.1
+pyobjc-framework-Quartz==11.1
+pyobjc-framework-WebKit==11.1
+pyobjc-framework-Security==11.1
+pyobjc-framework-UniformTypeIdentifiers==11.1

@@ -1756,8 +1756,8 @@ function Settings({
             </div>
             {!capabilities.cpp.available && (
               <p>
-                安装 g++ / clang++ 并加入 PATH，或设置环境变量{" "}
-                <code>CODERECALL_CXX</code> 为编译器路径，然后重启应用。
+                {capabilities.cpp.setupHelp ||
+                  "安装 g++ / clang++ 并加入 PATH，或设置 CODERECALL_CXX 为编译器完整路径，然后重启应用。"}
               </p>
             )}
           </div>

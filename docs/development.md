@@ -9,7 +9,7 @@
 | Python | 3.10+，后端使用标准库 |
 | Node.js | 推荐 22+，用于前端安装与构建 |
 | C++ 编译器 | 支持 C++17 的 g++ 或 clang++ |
-| 桌面窗口 | Windows WebView2；启动器也支持浏览器界面 |
+| 桌面窗口 | Windows WebView2 / macOS WKWebView |
 
 Windows 双击 `start.cmd` 可检查环境、按需构建并启动。PowerShell 支持指定端口与数据库：
 
@@ -50,6 +50,8 @@ python -m server.app
 
 变量值为编译器可执行文件的完整路径。运行器使用 `-std=c++17 -O2`，提供时间、输出大小和并发限制。代码以当前系统账户权限在本机运行，请运行自己理解并信任的代码。
 
+macOS 使用 Apple Command Line Tools 中的 clang++，可通过 `xcode-select --install` 安装。应用通过 `xcode-select` / `xcrun` 查找实际工具链；安装完成后重启应用即可。也支持 `CODERECALL_CXX` 指定其他 C++17 编译器。
+
 ## 构建与测试
 
 ```powershell
@@ -80,11 +82,26 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-desktop.
 
 构建脚本在 `.local/package-env` 准备桌面依赖，校验嵌入式 Python，输出 `release/GuGuGaGa-v2.5.0/`。`-SkipInstall` 复用打包依赖，`-SkipFrontend` 复用前端构建。发行目录包含运行环境、快捷方式脚本、知识库模板与第三方许可证。
 
+macOS 桌面打包在 Mac 上执行：
+
+```bash
+xcode-select --install  # 已安装 Command Line Tools 时跳过
+npm ci
+bash scripts/build-macos.sh
+```
+
+最低系统为 macOS 14。Apple Silicon 与 Intel 使用各自架构的 Python 3.13 构建，输出含独立 Python 运行环境的 `GuGuGaGa.app` 与 `.dmg`。应用采用 Cocoa / WKWebView，C++ 使用系统安装的 Apple Command Line Tools。
+
+GitHub Actions 的 `macos.yml` 在两种架构上分别构建和验证；测试覆盖后端、Hot100 C++ 参考解答、打包后的代码执行与原生窗口。成功后可从工作流产物下载，`macos-v2.5.0` 标签用于发布安装包。
+
+Mac 安装包采用 ad-hoc 签名；正式 Developer ID 签名与 Apple 公证需要发行者自己的证书和开发者账户。安装时的系统提示与打开方式见 README。
+
 ## 数据、备份与兼容
 
 | 场景 | 数据库 |
 | --- | --- |
-| GuGuGaGa / CodeRecall 2 桌面版 | `%LOCALAPPDATA%\CodeRecall-v2\coderecall.db` |
+| Windows GuGuGaGa / CodeRecall 2 桌面版 | `%LOCALAPPDATA%\CodeRecall-v2\coderecall.db` |
+| macOS GuGuGaGa 桌面版 | `~/Library/Application Support/CodeRecall-v2/coderecall.db` |
 | 当前源码运行 | `.local/coderecall-v2.db` |
 | CodeRecall 1 桌面版 | `%LOCALAPPDATA%\CodeRecall\coderecall.db` |
 

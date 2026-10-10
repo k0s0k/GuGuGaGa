@@ -3,6 +3,7 @@ from contextlib import ExitStack
 import os
 from pathlib import Path
 import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -14,7 +15,8 @@ from server.catalog import BY_ID
 from server.runner import capabilities, run
 
 
-def frozen_paths(stack, root):
+def frozen_paths(stack, root, platform="win32"):
+    stack.enter_context(patch.object(sys, "platform", platform))
     stack.enter_context(patch.object(sys, "frozen", True, create=True))
     stack.enter_context(patch.object(sys, "_MEIPASS", str(root / "_internal"), create=True))
     stack.enter_context(patch.object(sys, "executable", str(root / "CodeRecall.exe")))
@@ -23,6 +25,7 @@ def frozen_paths(stack, root):
 class PortableRuntimeTests(unittest.TestCase):
     def tearDown(self):
         runtime._probe_python.cache_clear()
+        runtime._macos_compiler.cache_clear()
 
     def test_frozen_app_and_resources_have_distinct_roots(self):
         with tempfile.TemporaryDirectory() as directory, ExitStack() as stack:
@@ -42,6 +45,61 @@ class PortableRuntimeTests(unittest.TestCase):
             self.assertEqual(result["status"], "unavailable")
             self.assertIn("_internal", result["message"])
             launch.assert_not_called()
+
+    def test_frozen_macos_uses_independent_python_and_clears_gui_library_paths(self):
+        with tempfile.TemporaryDirectory() as directory, ExitStack() as stack:
+            root = Path(directory)
+            frozen_paths(stack, root, platform="darwin")
+            stack.enter_context(patch("server.runtime.compiler", return_value=None))
+            stack.enter_context(patch.dict(os.environ, {
+                "DYLD_LIBRARY_PATH": "frozen-libraries", "DYLD_FRAMEWORK_PATH": "frozen-frameworks",
+                "DYLD_FALLBACK_LIBRARY_PATH": "frozen-fallback", "PYTHONPATH": "app-python",
+            }))
+            self.assertEqual(runtime.python_command(), [str(root / "_internal/runtime/python/bin/python3"), "-I", "-X", "utf8"])
+            self.assertNotEqual(runtime.python_command()[0], sys.executable)
+            environment = runtime.child_environment()
+            for key in ("DYLD_LIBRARY_PATH", "DYLD_FRAMEWORK_PATH", "DYLD_FALLBACK_LIBRARY_PATH", "PYTHONPATH"):
+                self.assertNotIn(key, environment)
+                self.assertIn(key, os.environ)
+
+    def test_macos_missing_command_line_tools_never_invokes_compiler_stub(self):
+        with patch.object(sys, "platform", "darwin"), patch.dict(os.environ, {"CODERECALL_CXX": ""}), \
+                patch("server.runtime.subprocess.run", return_value=subprocess.CompletedProcess([], 2, "")) as probe:
+            self.assertIsNone(runtime.compiler())
+            self.assertIsNone(runtime.compiler())
+            probe.assert_called_once()
+            self.assertEqual(probe.call_args.args[0], ["/usr/bin/xcode-select", "-p"])
+            result = run(BY_ID[1], {"language": "cpp", "code": "int main() {}", "mode": "acm"})
+            self.assertEqual(result["status"], "unavailable")
+            self.assertIn("xcode-select --install", result["message"])
+            self.assertIn("xcode-select --install", capabilities()["cpp"]["setupHelp"])
+
+    def test_macos_resolves_installed_clang_without_system_path(self):
+        with tempfile.TemporaryDirectory() as directory, ExitStack() as stack:
+            root = Path(directory)
+            developer = root / "CommandLineTools"
+            executable = developer / "usr/bin/clang++"
+            executable.parent.mkdir(parents=True)
+            executable.touch()
+            stack.enter_context(patch.object(sys, "platform", "darwin"))
+            stack.enter_context(patch.dict(os.environ, {"PATH": "", "CODERECALL_CXX": ""}))
+            probe = stack.enter_context(patch("server.runtime.subprocess.run", side_effect=[
+                subprocess.CompletedProcess([], 0, str(developer) + "\n"),
+                subprocess.CompletedProcess([], 0, str(executable) + "\n"),
+            ]))
+            self.assertEqual(runtime.compiler(), str(executable))
+            self.assertEqual(runtime.compiler(), str(executable))
+            self.assertEqual(probe.call_count, 2)
+            self.assertEqual(probe.call_args.args[0], ["/usr/bin/xcrun", "--find", "clang++"])
+
+    def test_macos_python_error_describes_app_bundle(self):
+        with tempfile.TemporaryDirectory() as directory, ExitStack() as stack:
+            frozen_paths(stack, Path(directory), platform="darwin")
+            stack.enter_context(patch("server.runtime.spawn_process"))
+            result = run(BY_ID[1], {"language": "python", "code": "print([])", "mode": "acm"})
+            self.assertEqual(result["status"], "unavailable")
+            self.assertIn("GuGuGaGa.app", result["message"])
+            self.assertNotIn(".exe", result["message"])
 
     def test_bundled_compiler_precedes_path_and_custom_precedes_bundle(self):
         with tempfile.TemporaryDirectory() as directory, ExitStack() as stack:

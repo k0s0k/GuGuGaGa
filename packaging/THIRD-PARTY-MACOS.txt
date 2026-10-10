@@ -1,0 +1,22 @@
+GuGuGaGa macOS distribution
+
+Python 3.13.9 (Python Software Foundation), built by python-build-standalone
+Source: https://github.com/astral-sh/python-build-standalone/releases/tag/20251014
+The independent interpreter and original license notices are retained under
+Contents/Resources/runtime/python/. It runs locally submitted Python programs.
+
+pywebview, PyObjC, and their Python dependencies
+Source: https://github.com/r0x0r/pywebview
+Source: https://github.com/ronaldoussoren/pyobjc
+Package metadata and license files are retained in Contents/Resources.
+The native window uses the Cocoa and WebKit frameworks provided by macOS.
+
+PyInstaller (GPL with the bootloader distribution exception)
+Source: https://pyinstaller.org/en/stable/license.html
+License: Contents/Resources/licenses/pyinstaller/COPYING.txt
+
+Frontend libraries
+Original package notices are collected in THIRD-PARTY-FRONTEND.txt.
+
+C++ execution uses the user's separately installed Xcode Command Line Tools.
+Application icon: supplied by the project owner.

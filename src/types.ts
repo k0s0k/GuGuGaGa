@@ -130,7 +130,7 @@ export interface KnowledgeDocument {
 }
 export interface Capabilities {
   python: { available: boolean; version: string };
-  cpp: { available: boolean; compiler: string | null };
+  cpp: { available: boolean; compiler: string | null; setupHelp?: string | null };
 }
 export interface Example {
   input: unknown[];

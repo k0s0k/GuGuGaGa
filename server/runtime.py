@@ -27,8 +27,9 @@ def app_dir():
 
 
 def python_command():
-    # In a frozen app sys.executable is CodeRecall.exe, NOT a Python interpreter.
-    executable = resource_root() / "runtime/python/python.exe" if getattr(sys, "frozen", False) else Path(sys.executable)
+    # The frozen desktop executable must never be restarted as a code worker.
+    worker = "runtime/python/python.exe" if sys.platform == "win32" else "runtime/python/bin/python3"
+    executable = resource_root() / worker if getattr(sys, "frozen", False) else Path(sys.executable)
     # Isolated mode ignores PYTHONIOENCODING, so also select UTF-8 explicitly.
     return [str(executable), "-I", "-X", "utf8"]
 
@@ -37,12 +38,59 @@ def compiler():
     custom = os.environ.get("CODERECALL_CXX")
     if custom and Path(custom).is_file():
         return str(Path(custom).resolve())
+    if sys.platform == "darwin":
+        return _macos_compiler()
     candidates = [resource_root() / "runtime/toolchains/w64devkit/bin/g++.exe",
                   app_dir() / ".local/toolchains/w64devkit/bin/g++.exe"]
     for candidate in candidates:
         if candidate.is_file():
             return str(candidate)
     return shutil.which("g++") or shutil.which("clang++")
+
+
+@lru_cache(maxsize=1)
+def _macos_compiler():
+    """Resolve Apple's real compiler without invoking an installer stub.
+
+    /usr/bin/clang++ and /usr/bin/g++ exist even when Command Line Tools are
+    absent. Check the selected developer directory before asking xcrun to
+    resolve clang++; the compiler itself is never launched during detection.
+    """
+    try:
+        environment = dict(os.environ)
+        for key in ("DYLD_LIBRARY_PATH", "DYLD_FRAMEWORK_PATH", "DYLD_FALLBACK_LIBRARY_PATH"):
+            environment.pop(key, None)
+        selected = subprocess.run(
+            ["/usr/bin/xcode-select", "-p"], stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+            text=True, encoding="utf-8", timeout=5, env=environment,
+        )
+        developer = Path(selected.stdout.strip())
+        if selected.returncode != 0 or not developer.is_absolute() or not developer.is_dir():
+            return None
+        resolved = subprocess.run(
+            ["/usr/bin/xcrun", "--find", "clang++"], stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+            text=True, encoding="utf-8", timeout=5, env=environment,
+        )
+        executable = Path(resolved.stdout.strip())
+        if resolved.returncode == 0 and executable.is_absolute() and executable.is_file():
+            return str(executable)
+    except (OSError, subprocess.SubprocessError, UnicodeError):
+        pass
+    return None
+
+
+def compiler_help():
+    if sys.platform == "darwin":
+        return "运行 C++ 需要 Apple Command Line Tools。请在终端执行 xcode-select --install，安装完成后重新打开 GuGuGaGa。"
+    return "尚未检测到 C++ 编译器。安装 g++ / clang++ 并加入 PATH，或设置 CODERECALL_CXX 为编译器完整路径，然后重新启动应用。"
+
+
+def python_runtime_help():
+    if sys.platform == "darwin":
+        return "Python 运行环境不可用。请从安装包重新将完整的 GuGuGaGa.app 拖入「应用程序」。"
+    return "Python 运行环境不可用。桌面版请保留 GuGuGaGa.exe 同目录的 _internal 文件夹，或重新解压完整软件包。"
 
 
 def child_environment():
@@ -61,6 +109,9 @@ def child_environment():
             environment.pop("LD_LIBRARY_PATH", None)
         environment.pop("PYTHONHOME", None)
         environment.pop("PYTHONPATH", None)
+        if sys.platform == "darwin":
+            for key in ("DYLD_LIBRARY_PATH", "DYLD_FRAMEWORK_PATH", "DYLD_FALLBACK_LIBRARY_PATH"):
+                environment.pop(key, None)
     # Compiled student programs also need the compiler's libstdc++/libgcc DLLs.
     cxx = compiler()
     if cxx:
