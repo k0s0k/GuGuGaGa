@@ -14,6 +14,7 @@ from uuid import uuid4
 from .scheduler import RATINGS, schedule, utc_now, parse_time
 from .knowledge import deck_fields, item_fields, identifier, import_into, text
 from .stones import calculate_stones, make_up_checkin
+from .json_support import validate_json_depth
 
 MAX_STATE_BYTES = 64 * 1024 * 1024
 MAX_AVATAR_BYTES = 256 * 1024
@@ -188,6 +189,7 @@ class Store:
     def validate_import(self, value):
         if not isinstance(value, dict) or type(value.get("version")) is not int or value.get("version") not in (1, 2):
             raise ValueError("不支持的备份格式或版本")
+        validate_json_depth(value)
         try:
             if len(json.dumps(value, ensure_ascii=False, allow_nan=False).encode("utf-8")) > MAX_STATE_BYTES:
                 raise ValueError("备份最多 64 MB")

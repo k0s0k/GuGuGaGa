@@ -37,7 +37,8 @@ def python_command():
 def compiler():
     custom = os.environ.get("CODERECALL_CXX")
     if custom and Path(custom).is_file():
-        return str(Path(custom).resolve())
+        # Preserve the clang++ driver name when it is a symlink to clang.
+        return str(Path(custom).absolute())
     if sys.platform == "darwin":
         return _macos_compiler()
     candidates = [resource_root() / "runtime/toolchains/w64devkit/bin/g++.exe",
@@ -74,11 +75,36 @@ def _macos_compiler():
             text=True, encoding="utf-8", timeout=5, env=environment,
         )
         executable = Path(resolved.stdout.strip())
-        if resolved.returncode == 0 and executable.is_absolute() and executable.is_file():
+        if resolved.returncode == 0 and executable.is_absolute() and executable.is_file() and _macos_sdk():
             return str(executable)
     except (OSError, subprocess.SubprocessError, UnicodeError):
         pass
     return None
+
+
+@lru_cache(maxsize=1)
+def _macos_sdk():
+    environment = dict(os.environ)
+    for key in ("DYLD_LIBRARY_PATH", "DYLD_FRAMEWORK_PATH", "DYLD_FALLBACK_LIBRARY_PATH"):
+        environment.pop(key, None)
+    try:
+        result = subprocess.run(
+            ["/usr/bin/xcrun", "--sdk", "macosx", "--show-sdk-path"],
+            stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+            text=True, encoding="utf-8", timeout=5, env=environment,
+        )
+        sdk = Path(result.stdout.strip())
+        if result.returncode == 0 and sdk.is_absolute() and sdk.is_dir():
+            return str(sdk)
+    except (OSError, subprocess.SubprocessError, UnicodeError):
+        pass
+    return None
+
+
+def compiler_flags(executable):
+    if executable and sys.platform == "darwin" and executable == _macos_compiler():
+        return ["-isysroot", _macos_sdk(), "-stdlib=libc++"]
+    return []
 
 
 def compiler_help():

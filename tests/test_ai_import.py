@@ -2,10 +2,13 @@
 import copy
 import json
 import socket
+import ssl
+import sys
+from pathlib import Path
 import unittest
 from unittest.mock import Mock, patch
 
-from server.ai_import import MAX_RESPONSE, _endpoint, _request_completion, split_document
+from server.ai_import import MAX_RESPONSE, _endpoint, _request_completion, https_context, split_document
 
 
 def proposal():
@@ -82,6 +85,18 @@ class DocumentSplitTests(unittest.TestCase):
 
 
 class TransportTests(unittest.TestCase):
+    def test_packaged_mac_adds_bundled_ca_without_disabling_tls_validation(self):
+        context = Mock(check_hostname=True, verify_mode=ssl.CERT_REQUIRED)
+        root = Path("GuGuGaGa.app/Contents/Frameworks")
+        with patch.object(sys, "platform", "darwin"), patch.object(sys, "frozen", True, create=True), \
+                patch("server.ai_import.resource_root", return_value=root), \
+                patch("server.ai_import.ssl.create_default_context", return_value=context) as factory:
+            self.assertIs(https_context(), context)
+        factory.assert_called_once_with()
+        context.load_verify_locations.assert_called_once_with(cafile=str(root / "packaging/cacert.pem"))
+        self.assertTrue(context.check_hostname)
+        self.assertEqual(context.verify_mode, ssl.CERT_REQUIRED)
+
     def fake_connection(self, status=200, body=b"{}"):
         response = Mock(status=status)
         response.read.return_value = body

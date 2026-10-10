@@ -3,6 +3,7 @@ import json
 import os
 from pathlib import Path
 import sys
+import certifi
 
 from PyInstaller.utils.hooks import collect_data_files, copy_metadata
 
@@ -15,10 +16,10 @@ for required in (ROOT / "desktop.py", ROOT / "dist/index.html", ICON):
     if not required.is_file():
         raise SystemExit(f"Missing build input: {required}. Run scripts/build-macos.sh.")
 
-datas = [(str(ROOT / "dist"), "dist"), (str(ICON), "packaging")]
+datas = [(str(ROOT / "dist"), "dist"), (str(ICON), "packaging"), (certifi.where(), "packaging")]
 datas += collect_data_files("webview")
 for distribution in (
-    "pywebview", "proxy_tools", "bottle", "typing_extensions", "pyobjc-core",
+    "pywebview", "proxy_tools", "bottle", "typing_extensions", "pyobjc-core", "certifi",
     "pyobjc-framework-Cocoa", "pyobjc-framework-Quartz", "pyobjc-framework-WebKit",
     "pyobjc-framework-Security", "pyobjc-framework-UniformTypeIdentifiers",
 ):

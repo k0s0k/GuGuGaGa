@@ -26,12 +26,13 @@ class PortableRuntimeTests(unittest.TestCase):
     def tearDown(self):
         runtime._probe_python.cache_clear()
         runtime._macos_compiler.cache_clear()
+        runtime._macos_sdk.cache_clear()
 
     def test_frozen_app_and_resources_have_distinct_roots(self):
         with tempfile.TemporaryDirectory() as directory, ExitStack() as stack:
             root = Path(directory)
             frozen_paths(stack, root)
-            self.assertEqual(runtime.app_dir(), root)
+            self.assertEqual(runtime.app_dir(), root.resolve())
             self.assertEqual(runtime.resource_root(), root / "_internal")
             self.assertEqual(runtime.python_command(), [str(root / "_internal/runtime/python/python.exe"), "-I", "-X", "utf8"])
             self.assertNotEqual(runtime.python_command()[0], sys.executable)
@@ -39,6 +40,7 @@ class PortableRuntimeTests(unittest.TestCase):
     def test_missing_bundled_python_does_not_fall_back_to_gui(self):
         with tempfile.TemporaryDirectory() as directory, ExitStack() as stack:
             frozen_paths(stack, Path(directory))
+            stack.enter_context(patch("server.runner.compiler", return_value=None))
             launch = stack.enter_context(patch("server.runtime.spawn_process"))
             self.assertEqual(capabilities()["python"], {"available": False, "version": None})
             result = run(BY_ID[1], {"code": "print([])", "mode": "acm"})
@@ -81,16 +83,20 @@ class PortableRuntimeTests(unittest.TestCase):
             executable = developer / "usr/bin/clang++"
             executable.parent.mkdir(parents=True)
             executable.touch()
+            sdk = developer / "SDKs/MacOSX.sdk"
+            sdk.mkdir(parents=True)
             stack.enter_context(patch.object(sys, "platform", "darwin"))
             stack.enter_context(patch.dict(os.environ, {"PATH": "", "CODERECALL_CXX": ""}))
             probe = stack.enter_context(patch("server.runtime.subprocess.run", side_effect=[
                 subprocess.CompletedProcess([], 0, str(developer) + "\n"),
                 subprocess.CompletedProcess([], 0, str(executable) + "\n"),
+                subprocess.CompletedProcess([], 0, str(sdk) + "\n"),
             ]))
             self.assertEqual(runtime.compiler(), str(executable))
             self.assertEqual(runtime.compiler(), str(executable))
-            self.assertEqual(probe.call_count, 2)
-            self.assertEqual(probe.call_args.args[0], ["/usr/bin/xcrun", "--find", "clang++"])
+            self.assertEqual(runtime.compiler_flags(str(executable)), ["-isysroot", str(sdk), "-stdlib=libc++"])
+            self.assertEqual(probe.call_count, 3)
+            self.assertEqual(probe.call_args.args[0], ["/usr/bin/xcrun", "--sdk", "macosx", "--show-sdk-path"])
 
     def test_macos_python_error_describes_app_bundle(self):
         with tempfile.TemporaryDirectory() as directory, ExitStack() as stack:

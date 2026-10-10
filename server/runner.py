@@ -11,7 +11,7 @@ import tempfile
 import threading
 import time
 from .adapters import program, format_input
-from .runtime import compiler, compiler_help, python_capabilities, python_command, python_runtime_help, spawn_process
+from .runtime import compiler, compiler_flags, compiler_help, python_capabilities, python_command, python_runtime_help, spawn_process
 
 RUN_LOCK = threading.Semaphore(2)
 OUTPUT_LIMIT = 128 * 1024
@@ -166,7 +166,8 @@ def run(problem, payload):
                 filename = path / "main.cpp"
                 filename.write_text(source, encoding="utf-8")
                 binary = path / ("main.exe" if os.name == "nt" else "main")
-                compiled = execute([compiler(), "-std=c++17", "-O2", str(filename), "-o", str(binary)], "", directory, 30)
+                cxx = compiler()
+                compiled = execute([cxx, *compiler_flags(cxx), "-std=c++17", "-O2", str(filename), "-o", str(binary)], "", directory, 30)
                 if compiled["exitCode"] != 0 or compiled["error"]:
                     return {"status": "compile_error", "message": compiled["error"] or compiled["stderr"], "cases": []}
                 command = [str(binary)]

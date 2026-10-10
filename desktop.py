@@ -17,6 +17,7 @@ from logging.handlers import RotatingFileHandler
 import os
 from pathlib import Path
 import secrets
+import ssl
 import sys
 import tempfile
 import threading
@@ -29,7 +30,7 @@ from desktop_support import data_directory, migrate_legacy_database
 from server.app import LocalHTTPServer, make_handler
 from server.catalog import BY_ID, detail
 from server.runner import capabilities, run
-from server.ai_import import split_document
+from server.ai_import import https_context, split_document
 from server.runtime import app_dir, resource_root
 from server.store import Store
 
@@ -304,6 +305,10 @@ def self_test(report_path: Path):
     report_path = report_path.resolve()
     report_path.parent.mkdir(parents=True, exist_ok=True)
     try:
+        if sys.platform == "darwin" and getattr(sys, "frozen", False):
+            context = https_context()
+            assert context.check_hostname and context.verify_mode == ssl.CERT_REQUIRED and context.cert_store_stats()["x509_ca"] > 0, "HTTPS certificate roots missing"
+            report["checks"].append("bundled_https_certificate_roots")
         with tempfile.TemporaryDirectory(prefix="coderecall-desktop-test-") as tmp:
             service = DesktopService(Path(tmp), initial_port=0)
             service.start()

@@ -5,9 +5,12 @@ import json
 import re
 import socket
 import ssl
+import sys
 from urllib.parse import urlsplit
 
 from .knowledge import FORMAT, MAX_ITEMS, validate_document, text
+from .json_support import validate_json_depth
+from .runtime import resource_root
 
 MAX_DOCUMENT = 200000
 MAX_RESPONSE = 4 * 1024 * 1024
@@ -31,7 +34,7 @@ def _json(value):
     def invalid_constant(_):
         raise ValueError("JSON 不支持 NaN 或 Infinity")
     try:
-        return json.loads(value, parse_constant=invalid_constant)
+        return validate_json_depth(json.loads(value, parse_constant=invalid_constant))
     except RecursionError as exc:
         raise ValueError("JSON 嵌套过深，请使用规定的知识库结构") from exc
 
@@ -111,9 +114,17 @@ def _endpoint(value):
     return parsed.scheme, parsed.hostname, port, path
 
 
+def https_context():
+    context = ssl.create_default_context()
+    if sys.platform == "darwin" and getattr(sys, "frozen", False):
+        # A packaged Mac must not depend on the build machine's Python CA path.
+        context.load_verify_locations(cafile=str(resource_root() / "packaging/cacert.pem"))
+    return context
+
+
 def _request_completion(endpoint, api_key, payload):
     scheme, host, port, path = endpoint
-    connection = (http.client.HTTPSConnection(host, port=port, timeout=60, context=ssl.create_default_context())
+    connection = (http.client.HTTPSConnection(host, port=port, timeout=60, context=https_context())
                   if scheme == "https" else http.client.HTTPConnection(host, port=port, timeout=60))
     headers = {"Content-Type": "application/json", "Accept": "application/json"}
     if api_key:

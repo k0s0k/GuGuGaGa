@@ -11,6 +11,11 @@ Source: https://github.com/ronaldoussoren/pyobjc
 Package metadata and license files are retained in Contents/Resources.
 The native window uses the Cocoa and WebKit frameworks provided by macOS.
 
+certifi (Mozilla Public License 2.0)
+Source: https://github.com/certifi/python-certifi
+Public certificate roots: Contents/Resources/packaging/cacert.pem
+Original package metadata and license are retained with the application.
+
 PyInstaller (GPL with the bootloader distribution exception)
 Source: https://pyinstaller.org/en/stable/license.html
 License: Contents/Resources/licenses/pyinstaller/COPYING.txt
