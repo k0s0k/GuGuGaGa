@@ -44,9 +44,9 @@
 
 ### 安装
 
-**Windows：**本地构建位于 `release/GuGuGaGa-v2.5.0/`，打开 `GuGuGaGa.exe`。移动程序时保留整个文件夹，包括 `.exe` 和 `_internal`。
+Windows：本地构建位于 `release/GuGuGaGa-v2.5.0/`，打开 `GuGuGaGa.exe`。移动程序时保留整个文件夹，包括 `.exe` 和 `_internal`。
 
-**macOS：**从 [Releases](https://github.com/k0s0k/GuGuGaGa/releases) 下载对应芯片的 `.dmg`，打开后将 **GuGuGaGa** 拖入 **Applications**，再从「应用程序」启动。可在「关于本机」查看芯片类型。
+macOS：从 [Releases](https://github.com/k0s0k/GuGuGaGa/releases) 下载对应芯片的 `.dmg`，打开后将 **GuGuGaGa** 拖入 **Applications**，再从「应用程序」启动。可在「关于本机」查看芯片类型。
 
 当前 Mac 构建采用本地签名。首次打开若提示开发者无法验证，可按 [Apple 官方说明](https://support.apple.com/zh-cn/102445)，在「系统设置 → 隐私与安全性」中允许打开。
 
