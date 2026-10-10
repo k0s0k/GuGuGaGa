@@ -6,7 +6,7 @@
 
 <p>每天一点，把知识记牢。</p>
 
-<p><a href="#功能">功能</a> · <a href="#安装与使用">安装与使用</a> · <a href="#常见问题">常见问题</a> · <a href="#开发">开发</a></p>
+<p><a href="#下载">下载</a> · <a href="#功能">功能</a> · <a href="#安装与使用">安装与使用</a> · <a href="#常见问题">常见问题</a> · <a href="#开发">开发</a></p>
 
 </div>
 
@@ -17,6 +17,18 @@
 - Windows 桌面版：解压后打开 `.exe`。
 - macOS 14+ 桌面版：Apple Silicon / Intel，打开 `.dmg` 后拖入「应用程序」。
 - 本地浏览器：从源码启动后访问学习界面。
+
+## 下载
+
+当前版本 **v2.5.0**，请选择对应系统和芯片：
+
+| 平台 | 下载 |
+| --- | --- |
+| Windows x64 | [下载 ZIP](https://github.com/k0s0k/GuGuGaGa/releases/download/macos-v2.5.0/GuGuGaGa-v2.5.0-windows-x64.zip) |
+| macOS · Apple Silicon（M 系列） | [下载 DMG](https://github.com/k0s0k/GuGuGaGa/releases/download/macos-v2.5.0/GuGuGaGa-v2.5.0-macos-arm64.dmg) |
+| macOS · Intel | [下载 DMG](https://github.com/k0s0k/GuGuGaGa/releases/download/macos-v2.5.0/GuGuGaGa-v2.5.0-macos-x86_64.dmg) |
+
+[查看全部发布文件与版本说明](https://github.com/k0s0k/GuGuGaGa/releases)
 
 ## 屏幕截图
 
@@ -44,9 +56,9 @@
 
 ### 安装
 
-Windows：本地构建位于 `release/GuGuGaGa-v2.5.0/`，打开 `GuGuGaGa.exe`。移动程序时保留整个文件夹，包括 `.exe` 和 `_internal`。
+Windows：下载并完整解压 ZIP，打开文件夹中的 `GuGuGaGa.exe`。双击 `create-shortcut.cmd` 可创建桌面快捷方式。移动程序时保留整个文件夹，包括 `.exe` 和 `_internal`。
 
-macOS：从 [Releases](https://github.com/k0s0k/GuGuGaGa/releases) 下载对应芯片的 `.dmg`，打开后将 **GuGuGaGa** 拖入 **Applications**，再从「应用程序」启动。可在「关于本机」查看芯片类型。
+macOS：下载对应芯片的 DMG，打开后将 **GuGuGaGa** 拖入 **Applications**，再从「应用程序」启动。可在「关于本机」查看芯片类型。
 
 当前 Mac 构建采用本地签名。首次打开若提示开发者无法验证，可按 [Apple 官方说明](https://support.apple.com/zh-cn/102445)，在「系统设置 → 隐私与安全性」中允许打开。
 
