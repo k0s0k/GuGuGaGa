@@ -33,6 +33,11 @@ def stop_process(process):
             os.killpg(process.pid, signal.SIGKILL)
         except ProcessLookupError:
             pass
+        except PermissionError:
+            # A fast-exiting child may disappear between the output check and
+            # group signalling. Ignore the error only after confirming exit.
+            if process.poll() is None:
+                raise
     try:
         process.wait(timeout=2)
     except subprocess.TimeoutExpired:

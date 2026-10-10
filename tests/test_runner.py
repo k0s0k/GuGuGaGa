@@ -8,11 +8,11 @@ import sys
 import tempfile
 import tokenize
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from server.adapters import brief, enrich, format_input, program
 from server.catalog import BY_ID, PROBLEMS
-from server.runner import OUTPUT_LIMIT, compiler, execute, matches, run, same_value
+from server.runner import OUTPUT_LIMIT, compiler, execute, matches, run, same_value, stop_process
 
 
 class SolutionContractTests(unittest.TestCase):
@@ -204,6 +204,20 @@ this is also a comment
 
 
 class ProcessLimitTests(unittest.TestCase):
+    def test_group_permission_error_is_ignored_only_after_child_exit(self):
+        process = Mock(pid=12345)
+        with patch("server.runner.os.name", "posix"), \
+                patch("signal.SIGKILL", 9, create=True), \
+                patch("server.runner.os.killpg", side_effect=PermissionError(), create=True):
+            process.poll.return_value = 0
+            stop_process(process)
+            process.wait.assert_called_once_with(timeout=2)
+            process.reset_mock()
+            process.poll.return_value = None
+            with self.assertRaises(PermissionError):
+                stop_process(process)
+            process.wait.assert_not_called()
+
     def execute_python(self, source, timeout=2):
         with tempfile.TemporaryDirectory() as directory:
             return execute([sys.executable, "-I", "-X", "utf8", "-c", source], "", directory, timeout)
